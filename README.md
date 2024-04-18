@@ -45,8 +45,8 @@ Because each network is highly dependent on the output of the previous network, 
 
 ************************************************************************************************
 The Reconstruction code has two subdirectories:
-1. Code to run over a set of SRawEvent digit files. Current configuration allows for reconstruction of E906 events present on Rivanna.
-2. Code to run for a specified file of events. This code can either reconstruct Monte Carlo events (.npz extension) or experimental events (.root extension, SRawEvent format)
+1. QTracker_Rivanna: Code to run over a set of SRawEvent digit files. Current configuration allows for reconstruction of E906 events present on Rivanna.
+2. QTracker_Run: Code to run for a specified file of events. This code can either reconstruct Monte Carlo events (.npz extension) or experimental events (.root extension, SRawEvent format)
 
 
 
