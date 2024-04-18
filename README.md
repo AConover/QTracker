@@ -3,7 +3,9 @@ Code for QTracker, an ANN-based particle reconstruction system for use with the 
 
 This repository is split into three folders:
 1.Monte Carlo Generation Codes
+
 2.Network training
+
 3.Reconstruction code.
 
 ************************************************************************************************
@@ -11,14 +13,20 @@ The Monte Carlo Generation code is for use with the Fun4All framework maintained
 There are four vertex configurations and three mass ranges used for the generation.
 
 The four vertex configurations are:
+
 -All vertices within 25 cm of the beamline from 700 cm upstream of the beam dump to 100 cm inside the beam dump.
+
 -Vertices within 1 cm of the beamline from 700 cm upstream of the beam dump to 100 cm inside the beam dump.
+
 -Vertices within 1 cm of the beamline within the target region (155 cm to 105 cm upstream of the beam dump.)
+
 -Vertices within 1 cm of the beamline within the target dump, from the beginning of the dump to 100 downstream.
 
 The three mass ranges used for the generation are:
 -Low-mass region, Drell-Yan events between 2 GeV and 4.5 GeV
+
 -Mid-mass region, Drell-Yan events between 4.5 and 7 GeV
+
 -High-mass region, Drell-Yan events between 7 and 10 GeV.
 
 The generated events are split into training and validation sets. The three mass ranges are then combined for each vertex configuration, and resampled to have a flat mass spectrum between 2 and 9 GeV.
