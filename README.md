@@ -3,11 +3,9 @@ Code for QTracker, an ANN-based particle reconstruction system for use with the 
 
 This repository is split into three folders:
 
-1.Monte Carlo Generation Codes
-
-2.Network training
-
-3.Reconstruction code.
+1. Monte Carlo Generation Codes (MC_Generation)
+2. Network training (QTracker_Train)
+3. Reconstruction code (QTracker_Execution)
 
 ************************************************************************************************
 The Monte Carlo Generation code is for use with the Fun4All framework maintained by the SpinQuest collaboration. There are 12 scripts used for the current version.
