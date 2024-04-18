@@ -2,9 +2,9 @@
 Code for QTracker, an ANN-based particle reconstruction system for use with the SeaQuest/SpinQuest spectrometer.
 
 This repository is split into three folders:
--Monte Carlo Generation Codes
--Network training
--Reconstruction code.
+1.Monte Carlo Generation Codes
+2.Network training
+3.Reconstruction code.
 
 ************************************************************************************************
 The Monte Carlo Generation code is for use with the Fun4All framework maintained by the SpinQuest collaboration. There are 12 scripts used for the current version.
