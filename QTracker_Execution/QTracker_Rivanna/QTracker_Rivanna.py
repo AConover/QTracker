@@ -11,6 +11,7 @@ timing_cuts = True #Use SRawEvent intime flag for hit filtering
 #####Output Options#####
 event_prob_output = True #Output the event filter probabilites for reconstructed events
 n_mismatch_output = True #Output the number of drift chamber mismatches for each chamber
+target_prob_output = True #Output the probability that the dimuon pair is from the target.
 tracks_output = False #Output the element IDs for the identified tracks for all three track finders
 metadata_output = True #Output metadata
 
@@ -65,7 +66,7 @@ def save_explanation():
         n_columns+=68
         explanation.append(f"Target Vertex Track: {n_columns}:{n_columns+68}")
         n_columns+=68
-    if metadata_output & (file_extension == '.root'):
+    if metadata_output:
         if runid_output:
             explanation.append(f"Run ID: Column {n_columns}")
             n_columns+=1
@@ -97,13 +98,8 @@ def save_explanation():
             if occ_before_cuts:explanation.append(f"Detector Occupancies before cuts: Columns {n_columns}:{n_columns+54}")
             else:explanation.append(f"Detector Occupancies after cuts: Columns {n_columns}:{n_columns+54}")
             n_columns+=54
-    if (file_extension == '.npz'):
-        explanation.append(f"Truth Kinematics: Columns {n_columns}:{n_columns+6}")
-        n_columns+=6
-        explanation.append(f"Truth Vertex: Columns {n_columns}:{n_columns+3}")
 
-    filename= f'reconstructed_columns.txt'
-    os.makedirs("Reconstructed", exist_ok=True)  # Ensure the output directory exists.
+    filename= f'../reconstructed_columns.txt'
     with open(filename,'w') as file:
         file.write('Explanation of Columns:\n\n')
         for info in explanation:
@@ -418,10 +414,10 @@ for root_file in root_files[i:]:
             tf.keras.backend.clear_session()
             tf.compat.v1.reset_default_graph()
             model=tf.keras.models.load_model('../Networks/Reconstruction_Target')
-            reco_kinematics = model.predict(target_track,batch_size=8192,verbose=0)
+            target_vtx_reco = model.predict(target_track,batch_size=8192,verbose=0)
             print("Reconstructed events for target vertices")
 
-            reco_kinematics = np.concatenate((all_vtx_reco,z_vtx_reco,target_vtx_reco_kinematics),axis=1)
+            reco_kinematics = np.concatenate((all_vtx_reco,z_vtx_reco,target_vtx_reco),axis=1)
             
             tracks = np.column_stack((all_vtx_track, z_vtx_track, target_track))
             
@@ -441,7 +437,7 @@ for root_file in root_files[i:]:
             dc_unmatched_st_2 = np.sum(abs(st2_track[:,::2]-st2_track[:,1::2])>1,axis=1)
             dc_unmatched_st_3 = np.sum(abs(st3_track[:,::2]-st3_track[:,1::2])>1,axis=1)
             
-            all_predictions = np.column_stack((all_vtx_reco*stds+means,z_vtx_reco*stds+means, target_vtx_reco_kinematics*kin_stds+kin_means))            
+            all_predictions = np.column_stack((all_vtx_reco*stds+means,z_vtx_reco*stds+means, target_vtx_reco*kin_stds+kin_means))            
             
             save_output()
         else: print("No events meeting dimuon criteria.")
