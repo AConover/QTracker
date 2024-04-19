@@ -7,7 +7,7 @@ import gc
 import os
 import sys
 
-#Set the path to the NIM3 files here. On a path that works in Rivanna is included here.
+#Set the path to the NIM3 files here. A path that works in Rivanna is included here.
 nim3_path = "/project/ptgroup/QTracker_Training/NIM3/"
 
 # Check if the script is run without a ROOT file or with the script name as input.
