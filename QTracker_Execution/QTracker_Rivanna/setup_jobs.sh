@@ -17,7 +17,7 @@ for ((i=$starting_number; i<=$highest_number; i++)); do
     cp jobscript.sh QTracker_Rivanna.py list_spill_good.txt "$dir_name"
     
     # Change the first line of the copied QTracker_Rivanna.py
-    sed -i "1s|root_directory = '/project/ptgroup/seaquest/data/digit/02/'|root_directory = '/project/ptgroup/seaquest/data/digit/02/$i/'|" "$dir_name/QTracker_Rivanna.py"
+    sed -i "s|root_directory = '/project/ptgroup/seaquest/data/digit/02/'|root_directory = '/project/ptgroup/seaquest/data/digit/02/$i/'|" "$dir_name/QTracker_Rivanna.py"
     
     # Grant execute permissions to jobscript.sh
     chmod +x "$dir_name/jobscript.sh"

@@ -1,10 +1,42 @@
+###QTracker Execution###
+#This script is used for reconstructing a single root or numpy file.
+#Usage:
+"""""""""""""""
+python QTracker_Run.py /path/to/file.root|.npz
+"""""""""""""""
+#####Reconstruction Options#####
+dimuon_prob_threshold = 0.75 #Minimum dimuon probability to reconstruct.
+timing_cuts = True #Use SRawEvent intime flag for hit filtering
+
+#####Output Options#####
+event_prob_output = True #Output the event filter probabilites for reconstructed events
+n_mismatch_output = True #Output the number of drift chamber mismatches for each chamber
+target_prob_output = True
+tracks_output = False #Output the element IDs for the identified tracks for all three track finders
+metadata_output = True #Output metadata
+
+####Metadata Options#####
+#Select which values from the SRawEvent file should be saved to the reconstructed .npy file
+#Only affects output if using .root file.
+runid_output = True #Output the run id
+eventid_output = True #Output the event id
+spillid_output = True #Output the spill id
+triggerbit_output = True #Output the trigger bit for the event
+target_pos_output = True #Output the target type (hydrogen, deuterium, etc.)
+turnid_output = True #Output the turn id
+rfid_output = True #Output the RF ID
+intensity_output = True #Output Cherenkov information
+trigg_rds_output = True #Output the number of trigger roads activated
+occ_output = True #Output the occupancy information
+occ_before_cuts = False #If set to true, counts number of hits before timing cuts, if false, outputs occupancies after hit reduction.
+
+#################
 import os
 import numpy as np
 import uproot  # For reading ROOT files, a common data format in particle physics.
 import numba  # Just-In-Time (JIT) compiler for speeding up Python code.
 from numba import njit, prange  # njit for compiling functions, prange for parallel loops.
 import tensorflow as tf  # For using machine learning models.
-
 import sys
 
 # Check if the script is run without a ROOT file or with the script name as input.
@@ -21,6 +53,123 @@ if file_extension not in valid_extensions:
     print("Invalid input file format. Supported formats: .root, .npy")
     quit()
 
+    
+def save_explanation():
+    explanation = []
+    n_columns = 0
+    if event_prob_output: 
+        explanation.append(f"Event Filter Probabilites: Columns {n_columns}:{n_columns+6}")
+        n_columns+=6
+    if n_mismatch_output:
+        explanation.append(f"Drift chamber mismatches (St 1, 2, 3): Columns {n_columns}:{n_columns+3}")
+        n_columns+=3
+    explanation.append(f"All Vertex Kinematic Predictions: Columns {n_columns}:{n_columns+6}")
+    n_columns+=6
+    explanation.append(f"All Vertex Vertex Predictions: Columns {n_columns}:{n_columns+3}")
+    n_columns+=3
+    explanation.append(f"Z Vertex Kinematic Predictions: Columns {n_columns}:{n_columns+6}")
+    n_columns+=6
+    explanation.append(f"Z Vertex Vertex Predictions: Columns {n_columns}:{n_columns+3}")
+    n_columns+=3
+    explanation.append(f"Target Vertex Kinematic Predictions: Columns {n_columns}:{n_columns+6}")
+    n_columns+=6
+    if target_prob_output:
+        explanation.append(f"Target Probability: Column {n_columns}")
+        n_columns+=1
+    if tracks_output: 
+        explanation.append(f"All Vertex Track: {n_columns}:{n_columns+68}")
+        n_columns+=68
+        explanation.append(f"Z Vertex Track: {n_columns}:{n_columns+68}")
+        n_columns+=68
+        explanation.append(f"Target Vertex Track: {n_columns}:{n_columns+68}")
+        n_columns+=68
+    if metadata_output & (file_extension == '.root'):
+        if runid_output:
+            explanation.append(f"Run ID: Column {n_columns}")
+            n_columns+=1
+        if eventid_output:
+            explanation.append(f"Event ID: Column {n_columns}")
+            n_columns+=1
+        if spillid_output:
+            explanation.append(f"Spill ID: Column {n_columns}")
+            n_columns+=1
+        if triggerbit_output:
+            explanation.append(f"Trigger Bits: Column {n_columns}")
+            n_columns+=1
+        if target_pos_output:
+            explanation.append(f"Target Positions: Column {n_columns}")
+            n_columns+=1
+        if turnid_output:
+            explanation.append(f"Turn ID: Column {n_columns}")
+            n_columns+=1
+        if rfid_output:
+            explanation.append(f"RFID: Column {n_columns}")
+            n_columns+=1
+        if intensity_output:
+            explanation.append(f"Cherenkov Information: Columns {n_columns}:{n_columns+32}")
+            n_columns+=32
+        if trigg_rds_output:
+            explanation.append(f"Number of Trigger Roads: Column {n_columns}")
+            n_columns+=1
+        if occ_output:
+            if occ_before_cuts:explanation.append(f"Detector Occupancies before cuts: Columns {n_columns}:{n_columns+54}")
+            else:explanation.append(f"Detector Occupancies after cuts: Columns {n_columns}:{n_columns+54}")
+            n_columns+=54
+    if (file_extension == '.npz'):
+        explanation.append(f"Truth Kinematics: Columns {n_columns}:{n_columns+6}")
+        n_columns+=6
+        explanation.append(f"Truth Vertex: Columns {n_columns}:{n_columns+3}")
+    basename = os.path.basename(root_file).split('.')[0]
+    filename= f'Reconstructed/{basename}_columns.txt'
+    os.makedirs("Reconstructed", exist_ok=True)  # Ensure the output directory exists.
+    with open(filename,'w') as file:
+        file.write('Explanation of Columns:\n\n')
+        for info in explanation:
+            file.write(f"{info}\n")    
+
+save_explanation()            
+
+def save_output():
+    # After processing through all models, the results are aggregated based on options at top,
+    # and the final dataset is prepared.
+
+    # The reconstructed kinematics and vertex information are normalized
+    # using predefined means and standard deviations before saving.
+    if file_extension == '.root':
+        metadata = []
+        if runid_output:metadata.append(runid)
+        if eventid_output:metadata.append(eventid)
+        if spillid_output:metadata.append(spill_id)
+        if triggerbit_output:metadata.append(trigger_bit)
+        if target_pos_output:metadata.append(target_position)
+        if turnid_output:metadata.append(turnid)
+        if rfid_output:metadata.append(rfid)
+        if intensity_output:metadata.append(intensity)
+        if trigg_rds_output:metadata.append(n_roads)
+        if occ_output:
+            if occ_before_cuts:metadata.append(n_hits)
+            else:metadata.append(np.sum(hits,axis=2))#Calculates the occupanceis from the Hit Matrix 
+        metadata = np.column_stack(metadata)
+    if file_extension == '.npz':
+        metadata = truth
+    output = []
+    if event_prob_output: output.append(event_classification_probabilies)
+    if n_mismatch_output:
+        output.append(dc_unmatched_st_1)
+        output.append(dc_unmatched_st_2)
+        output.append(dc_unmatched_st_3)
+    output.append(all_predictions)
+    if target_prob_output:
+        output.append(target_dump_prob[:,1])
+    if tracks_output: output.append(tracks)
+    if metadata_output: output.append(metadata)
+    output_data = np.column_stack(output)
+
+    base_filename = 'Reconstructed/' + os.path.basename(root_file).split('.')[0]
+    os.makedirs("Reconstructed", exist_ok=True)  # Ensure the output directory exists.
+    np.save(base_filename + '_reconstructed.npy', output_data)  # Save the final dataset.
+    print(f"File {base_filename}_reconstructed.npy has been saved successfully.")
+
 
 # Define normalization constants for kinematic and vertex data.
 kin_means = np.array([2, 0, 35, -2, 0, 35])
@@ -34,6 +183,7 @@ stds = np.concatenate((kin_stds, vertex_stds))
 # Function to convert raw detector data into a structured hit matrix.
 @njit()
 def hit_matrix(detectorid,elementid,drifttime,tdctime,intime,hits,drift,tdc): #Convert into hit matrices
+    if(timing_cuts==False):intime[:]=2
     for j in prange (len(detectorid)):
         #Apply station 0 TDC timing cuts
         if (detectorid[j]<7) and (intime[j]>0):
@@ -243,7 +393,7 @@ predictions = probability_model.predict(hits, batch_size=256, verbose=0)
 
 # Filter out events based on the prediction from the event filter model.
 #Keep events that have better than 75% probability of having a dimuon tracks.
-filt = predictions[:, 3] > 0.75
+filt = predictions[:, 3] > dimuon_prob_threshold
 hits = hits[filt]
 drift = drift[filt]
 if(file_extension=='.root'):
@@ -260,8 +410,6 @@ if(file_extension=='.root'):
 	n_roads = targettree["fNRoads[4]"].arrays(library="np")["fNRoads[4]"][filt]
 	n_hits = targettree["fNHits[55]"].arrays(library="np")["fNHits[55]"][filt]
 
-	metadata = np.column_stack((runid, eventid, spill_id, trigger_bit, target_position, turnid, rfid, intensity, n_roads, n_hits))
-
 if(file_extension=='.npz'):
 	truth = truth[filt]
 
@@ -273,7 +421,7 @@ print("Found",len(hits),"dimuons.")
 # If there are filtered events to process, continue with the track finding and reconstruction.
 if(len(hits) > 0):
     # The predictions from the event filter are stored for later use.
-    dimuon_probability = predictions
+    event_classification_probabilies = predictions
 
     # Clear any existing TensorFlow models from memory to load new ones.
     tf.keras.backend.clear_session()
@@ -371,33 +519,34 @@ if(len(hits) > 0):
     target_vtx_reco_kinematics= reco_kinematics
 
     reco_kinematics = np.concatenate((all_vtx_reco_kinematics,z_vtx_reco_kinematics,target_vtx_reco_kinematics),axis=1)
-
+    
+    tracks = np.column_stack((all_vtx_track, z_vtx_track, target_track))
+    
+    target_dump_input = np.column_stack((reco_kinematics,tracks.reshape((len(tracks),(204*2)))))
+    
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
     model=tf.keras.models.load_model('Networks/target_dump_filter')
-    target_dump_prob = model.predict(reco_kinematics,batch_size=8192,verbose=0)
-    tracks = np.concatenate((all_vtx_track, z_vtx_track, target_track),axis=2)
+    target_dump_pred = model.predict(target_dump_input,batch_size=512,verbose=0)
+    target_dump_prob = np.exp(target_dump_pred) / np.sum(np.exp(target_dump_pred), axis=1, keepdims=True)
     all_predictions = np.column_stack((all_vtx_reco_kinematics*stds+means,z_vtx_reco_kinematics*stds+means, target_vtx_reco_kinematics*kin_stds+kin_means))            
+    print("Reconstructed events for target vertices")
+
+    #Calculate the number of drift chamber mismatches for output
+    st1_track = np.column_stack((target_track[:,:6,0],target_track[:,34:40,0]))
+    st2_track = np.column_stack((target_track[:,6:12,0],target_track[:,40:46,0]))
+    st3_track = np.column_stack((target_track[:,12:18,0],target_track[:,46:52,0]))
+    dc_unmatched_st_1 = np.sum(abs(st1_track[:,::2]-st1_track[:,1::2])>1,axis=1)
+    dc_unmatched_st_2 = np.sum(abs(st2_track[:,::2]-st2_track[:,1::2])>1,axis=1)
+    dc_unmatched_st_3 = np.sum(abs(st3_track[:,::2]-st3_track[:,1::2])>1,axis=1)
+
+    tracks = tracks[:,0] #Select only the element IDs for output
 
     print("Reconstructed events for target vertices")
-    if(file_extension=='.root'):
-    	output_data = np.column_stack((dimuon_probability, all_predictions, target_dump_prob, metadata))
-    if(file_extension=='.npz'):
-    	output_data = np.column_stack((dimuon_probability, all_predictions, target_dump_prob, truth))
-    # After processing through all models, the results are aggregated,
-    # and the final dataset is prepared by combining the dimuon probability,
-    # reconstructed kinematics, and vertex information with the original event metadata.
-
-    # The reconstructed kinematics and vertex information are normalized
-    # using predefined means and standard deviations before saving.
-
+   
     # The QTracker output data is saved to a NumPy file for further analysis,
-
-    base_filename = 'Reconstructed/' + os.path.basename(root_file).split('.')[0]
-    os.makedirs("Reconstructed", exist_ok=True)  # Ensure the output directory exists.
-    np.save(base_filename + '_reconstructed.npy', output_data)  # Save the final dataset.
     
-    print(f"File {base_filename}_reconstructed.npy has been saved successfully.")
+    save_output()
     print("QTracker Complete")
     
 

@@ -1,0 +1,7 @@
+This folder contains the required scripts and networks to reconstruct either SRawEvent or .npz MC files.
+
+Edit QTracker_Run.py to change reconstruction and output options.
+
+To run QTracker_Run.py, use the command:
+
+python QTracker_Run.py /path/to/file.root|npz
