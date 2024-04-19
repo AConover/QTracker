@@ -101,8 +101,8 @@ def save_explanation():
         explanation.append(f"Truth Kinematics: Columns {n_columns}:{n_columns+6}")
         n_columns+=6
         explanation.append(f"Truth Vertex: Columns {n_columns}:{n_columns+3}")
-    basename = os.path.basename(root_file).split('.')[0]
-    filename= f'Reconstructed/{basename}_columns.txt'
+
+    filename= f'reconstructed_columns.txt'
     os.makedirs("Reconstructed", exist_ok=True)  # Ensure the output directory exists.
     with open(filename,'w') as file:
         file.write('Explanation of Columns:\n\n')
