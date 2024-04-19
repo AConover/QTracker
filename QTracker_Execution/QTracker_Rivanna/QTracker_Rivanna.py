@@ -1,5 +1,33 @@
+###QTracker Execution###
+#This script is used for reconstructing a large number of 
+
+#####Parent Directory ######
+#Set the top level directory where SRawEvent files are stored.
 root_directory = '/project/ptgroup/seaquest/data/digit/02/'
 
+#####Reconstruction Options#####
+dimuon_prob_threshold = 0.75 #Minimum dimuon probability to reconstruct.
+timing_cuts = True #Use SRawEvent intime flag for hit filtering
+
+#####Output Options#####
+event_prob_output = True #Output the event filter probabilites for reconstructed events
+n_mismatch_output = True #Output the number of drift chamber mismatches for each chamber
+
+####Metadata Options#####
+#Select which values from the SRawEvent file should be saved to the reconstructed .npy file
+runid_output = True #Output the run id
+eventid_output = True #Output the event id
+spillid_output = True #Output the spill id
+triggerbit_output = True #Output the trigger bit for the event
+target_pos_output = True #Output the target type (hydrogen, deuterium, etc.)
+turnid_output = True #Output the turn id
+rfid_output = True #Output the RF ID
+intensity_output = True #Output Cherenkov information
+trigg_rds_output = True #Output the number of trigger roads activated
+occ_output = True #Output the occupancy information
+occ_before_cuts = False #If set to true, counts number of hits before timing cuts, if false, outputs occupancies after hit reduction.
+
+#################
 import os
 import numpy as np
 import uproot
@@ -299,6 +327,7 @@ for root_file in root_files[i:]:
             predictions = (np.round(model.predict(hits)*max_ele)).astype(int)
             target_track = evaluate_finder(hits,drift,predictions)
             print("Found Tracks")
+		
             dc_track = np.column_stack((target_track[:,:18,0],target_track[:,34:52,0]))
             dc_unmatched_count = np.sum(abs(dc_track[:,::2]-dc_track[:,1::2])>1,axis=1)
 
