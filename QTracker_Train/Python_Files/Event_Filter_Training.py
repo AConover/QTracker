@@ -249,7 +249,7 @@ pos_events_val=np.zeros((targetevents,54))
 neg_events_val=np.zeros((targetevents,54))
 #print("Reading target events...")
 for j in range(targetevents):
-    #first=targetdata['pid'][j][0]
+    first=targetdata['pid'][j][0]
     if(first>0):
         pos_events_val[j][0]=targetdata['D0U_ele'][j][0]
         neg_events_val[j][0]=targetdata['D0U_ele'][j][1]
