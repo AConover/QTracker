@@ -8,7 +8,7 @@
 #SBATCH -J QTracking_TFA
 #SBATCH -o Slurm_Files/QTracking_TFA.out
 #SBATCH -e Slurm_Files/QTracking_TFA.err
-#SBATCH --mem=384000
+#SBATCH --mem=256000
 
 module purge
 module load apptainer tensorflow/2.13.0

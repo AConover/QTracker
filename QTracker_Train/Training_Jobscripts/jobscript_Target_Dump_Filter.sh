@@ -8,11 +8,11 @@
 #SBATCH -J QTracking_Target_Dump
 #SBATCH -o Slurm_Files/QTracking_Target_Dump.out
 #SBATCH -e Slurm_Files/QTracking_Target_Dump.err
-#SBATCH --mem=384000
+#SBATCH --mem=256000
 
 module purge
 module load apptainer tensorflow/2.13.0
 
 #apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Generate_Reco_Target.py
-apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Generate_Reco_Dump.py
+#apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Generate_Reco_Dump.py
 apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Target_Dump_Filter.py

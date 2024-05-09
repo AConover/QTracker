@@ -13,4 +13,5 @@
 module purge
 module load apptainer tensorflow/2.13.0
 
+apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Make_Networks.py
 apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Event_Filter_Training.py
