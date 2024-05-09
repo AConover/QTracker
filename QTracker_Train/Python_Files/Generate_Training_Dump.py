@@ -286,8 +286,8 @@ def read_root_file(root_file):
     return pos_events, pos_drift, pos_kinematics, neg_events, neg_drift, neg_kinematics
 
 
-pos_events, pos_drift, pos_kinematics, neg_events, neg_drift, neg_kinematics = read_root_file('Root_Files/Z_Train_QA_v2.root')
-pos_events_val, pos_drift_val, pos_kinematics_val, neg_events_val, neg_drift_val, neg_kinematics_val = read_root_file('Root_Files/Z_Val_QA_v2.root')
+pos_events, pos_drift, pos_kinematics, neg_events, neg_drift, neg_kinematics = read_root_file('Root_Files/Dump_Train_QA_v2.root')
+pos_events_val, pos_drift_val, pos_kinematics_val, neg_events_val, neg_drift_val, neg_kinematics_val = read_root_file('Root_Files/Dump_Val_QA_v2.root')
 
 @njit(parallel=True)
 def clean(events):
@@ -479,20 +479,20 @@ while(n_train<1e7):
 
     del val_predictions, train_predictions
     tf.keras.backend.clear_session()
-    model = tf.keras.models.load_model('Networks/Track_Finder_Z')
+    model = tf.keras.models.load_model('Networks/Track_Finder_Dump')
     predictions = (np.round(model.predict(valin, verbose=0)*max_ele)).astype(int)
     val_input.append(evaluate_finder(valin,valdrift,predictions))
     tf.keras.backend.clear_session()
-    model = tf.keras.models.load_model('Networks/Track_Finder_Z')
+    model = tf.keras.models.load_model('Networks/Track_Finder_Dump')
     predictions = (np.round(model.predict(trainin, verbose=0)*max_ele)).astype(int)
     train_input.append(evaluate_finder(trainin,traindrift,predictions))
     n_train+=len(trainin)
     del trainin, valin, traindrift, valdrift, predictions
     
-    np.save('Training_Data/Z_Val_In.npy',np.concatenate((val_input)))
-    np.save('Training_Data/Z_Val_Out.npy',np.concatenate((val_kinematics)))
-    np.save('Training_Data/Z_Train_In.npy',np.concatenate((train_input)))
-    np.save('Training_Data/Z_Train_Out.npy',np.concatenate((train_kinematics)))
+    np.save('Training_Data/Dump_Val_In.npy',np.concatenate((val_input)))
+    np.save('Training_Data/Dump_Val_Out.npy',np.concatenate((val_kinematics)))
+    np.save('Training_Data/Dump_Train_In.npy',np.concatenate((train_input)))
+    np.save('Training_Data/Dump_Train_Out.npy',np.concatenate((train_kinematics)))
     
     print(n_train)
 

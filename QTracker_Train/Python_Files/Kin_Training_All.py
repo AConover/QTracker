@@ -17,14 +17,14 @@ learning_rate_reco=1e-6
 callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=100, restore_best_weights=True)
 
 #Load the pre-generated training data
-valin_reco = np.load("Training_Data/All_Vertex_Val_In.npy")
-valkinematics = np.load("Training_Data/All_Vertex_Val_Out.npy")
+valin_reco = np.load("Training_Data/All_Val_In.npy")
+valkinematics = np.load("Training_Data/All_Val_Out.npy")
 filt = np.max(abs(valin_reco.reshape(len(valin_reco),(136))),axis=1)<1000
 valin_reco = valin_reco[filt]
 valkinematics = valkinematics[filt]
 
-trainin_reco = np.load("Training_Data/All_Vertex_Train_In.npy")
-trainkinematics = np.load("Training_Data/All_Vertex_Train_Out.npy")
+trainin_reco = np.load("Training_Data/All_Train_In.npy")
+trainkinematics = np.load("Training_Data/All_Train_Out.npy")
 filt = np.max(abs(trainin_reco.reshape(len(trainin_reco),(136))),axis=1)<1000
 trainin_reco = trainin_reco[filt]
 trainkinematics = trainkinematics[filt]

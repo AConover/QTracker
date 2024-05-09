@@ -17,14 +17,14 @@ learning_rate_reco=1e-5
 callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=100, restore_best_weights=True)
 
 #Load the pre-generated training data
-valin_reco = np.load("Training_Data/Z_Val_In.npy")
-valkinematics = np.load("Training_Data/Z_Val_Out.npy")
+valin_reco = np.load("Training_Data/Dump_Val_In.npy")
+valkinematics = np.load("Training_Data/Dump_Val_Out.npy")
 filt = np.max(abs(valin_reco.reshape(len(valin_reco),(136))),axis=1)<1000
 valin_reco = valin_reco[filt]
 valkinematics = valkinematics[filt]
 
-trainin_reco = np.load("Training_Data/Z_Train_In.npy")
-trainkinematics = np.load("Training_Data/Z_Train_Out.npy")
+trainin_reco = np.load("Training_Data/Dump_Train_In.npy")
+trainkinematics = np.load("Training_Data/Dump_Train_Out.npy")
 filt = np.max(abs(trainin_reco.reshape(len(trainin_reco),(136))),axis=1)<1000
 trainin_reco = trainin_reco[filt]
 trainkinematics = trainkinematics[filt]
@@ -36,7 +36,7 @@ trainkin = (trainkin-kin_means)/kin_stds
 valkin = (valkin-kin_means)/kin_stds
 
 tf.keras.backend.clear_session()
-model=tf.keras.models.load_model('Networks/Reconstruction_Z')
+model=tf.keras.models.load_model('Networks/Reconstruction_Dump')
 optimizer = tf.keras.optimizers.Adam(learning_rate_reco)
 model.compile(optimizer=optimizer,
       loss=tf.keras.losses.mse,
@@ -45,4 +45,4 @@ val_loss_before=model.evaluate(valin_reco,valkin,batch_size=100,verbose=2)[0]
 print(val_loss_before)
 history = model.fit(trainin_reco, trainkin,
             epochs=10000, batch_size=1024, verbose=2, validation_data=(valin_reco,valkin),callbacks=[callback])
-model.save('Networks/Reconstruction_Z')
+model.save('Networks/Reconstruction_Dump')

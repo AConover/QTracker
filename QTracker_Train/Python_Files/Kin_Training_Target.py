@@ -18,10 +18,16 @@ callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=100, re
 
 #Load the pre-generated training data
 valin_reco = np.load("Training_Data/Target_Val_In.npy")
-trainin_reco = np.load("Training_Data/Target_Train_In.npy")
-
 valkinematics = np.load("Training_Data/Target_Val_Out.npy")
+filt = np.max(abs(valin_reco.reshape(len(valin_reco),(136))),axis=1)<1000
+valin_reco = valin_reco[filt]
+valkinematics = valkinematics[filt]
+
+trainin_reco = np.load("Training_Data/Target_Train_In.npy")
 trainkinematics = np.load("Training_Data/Target_Train_Out.npy")
+filt = np.max(abs(trainin_reco.reshape(len(trainin_reco),(136))),axis=1)<1000
+trainin_reco = trainin_reco[filt]
+trainkinematics = trainkinematics[filt]
 
 trainkin = trainkinematics[:,:6]
 valkin = valkinematics[:,:6]

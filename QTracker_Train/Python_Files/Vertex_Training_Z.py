@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 import numpy as np
 import tensorflow as tf
 import gc
@@ -17,10 +14,16 @@ callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=100, re
 
 #Load the pre-generated training data
 valin_reco = np.load("Training_Data/Z_Val_In.npy")
-trainin_reco = np.load("Training_Data/Z_Train_In.npy")
-
 valkinematics = np.load("Training_Data/Z_Val_Out.npy")
+filt = np.max(abs(valin_reco.reshape(len(valin_reco),(136))),axis=1)<1000
+valin_reco = valin_reco[filt]
+valkinematics = valkinematics[filt]
+
+trainin_reco = np.load("Training_Data/Z_Train_In.npy")
 trainkinematics = np.load("Training_Data/Z_Train_Out.npy")
+filt = np.max(abs(trainin_reco.reshape(len(trainin_reco),(136))),axis=1)<1000
+trainin_reco = trainin_reco[filt]
+trainkinematics = trainkinematics[filt]
 
 trainvertex = trainkinematics[:,6:]
 valvertex = valkinematics[:,6:]
@@ -34,10 +37,18 @@ train_reco = model.predict(trainin_reco,batch_size=8192)
 val_reco = model.predict(valin_reco,batch_size=8192)
 
 train_input=np.concatenate((train_reco.reshape((len(train_reco),3,2)),trainin_reco),axis=1)
+filt = np.max(abs(train_input.reshape(len(train_input),(142))),axis=1)<201
+train_input = train_input[filt]
+trainvertex = trainvertex[filt]
+
+
 val_input=np.concatenate((val_reco.reshape((len(val_reco),3,2)),valin_reco),axis=1)
+filt = np.max(abs(val_input.reshape(len(val_input),(142))),axis=1)<201
+val_input = val_input[filt]
+valvertex = valvertex[filt]
 
 tf.keras.backend.clear_session()
-model=tf.keras.models.load_model('Networks/Vertexing_Z')
+model=tf.keras.models.load_model('Networks/Vertexing_All')
 optimizer = tf.keras.optimizers.Adam(learning_rate_vertex)
 model.compile(optimizer=optimizer,
       loss=tf.keras.losses.mse,

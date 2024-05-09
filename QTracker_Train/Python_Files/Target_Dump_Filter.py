@@ -73,18 +73,7 @@ X_val = X_val[indices]
 y_val = y_val[indices]
 
 
-# Build a more complex neural network
-model = tf.keras.Sequential([
-    tf.keras.layers.Input(shape=(432,)),
-    tf.keras.layers.Dense(1024, activation='relu'),
-    tf.keras.layers.Dense(512, activation='relu'),
-    tf.keras.layers.Dense(256, activation='relu'),
-    tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dense(64, activation='relu'),
-    tf.keras.layers.Dense(32, activation='relu'),
-    tf.keras.layers.Dense(16, activation='relu'),
-    tf.keras.layers.Dense(2)
-])
+model = tf.keras.models.load_model('Networks/target_dump_filter')
 
 optimizer = tf.keras.optimizers.Adam(learning_rate=0.000001)
 

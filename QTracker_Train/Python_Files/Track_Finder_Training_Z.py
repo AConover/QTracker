@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 import os
 #os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import numpy as np
@@ -14,440 +8,291 @@ import tensorflow as tf
 import gc
 
 
-# In[2]:
+def read_root_file(root_file):
+    print("Reading ROOT files...")
+    targettree = uproot.open(root_file+':QA_ana')
+    targetevents=len(targettree['n_tracks'].array(library='np'))
+    D0U_ele = targettree['D0U_ele'].array(library='np')
+    D0Up_ele = targettree['D0Up_ele'].array(library='np')
+    D0X_ele = targettree['D0X_ele'].array(library='np')
+    D0Xp_ele = targettree['D0Xp_ele'].array(library='np')
+    D0V_ele = targettree['D0V_ele'].array(library='np')
+    D0Vp_ele = targettree['D0Vp_ele'].array(library='np')
+
+    D2U_ele = targettree['D2U_ele'].array(library='np')
+    D2Up_ele = targettree['D2Up_ele'].array(library='np')
+    D2X_ele = targettree['D2X_ele'].array(library='np')
+    D2Xp_ele = targettree['D2Xp_ele'].array(library='np')
+    D2V_ele = targettree['D2V_ele'].array(library='np')
+    D2Vp_ele = targettree['D2Vp_ele'].array(library='np')
+
+    D3pU_ele = targettree['D3pU_ele'].array(library='np')
+    D3pUp_ele = targettree['D3pUp_ele'].array(library='np')
+    D3pX_ele = targettree['D3pX_ele'].array(library='np')
+    D3pXp_ele = targettree['D3pXp_ele'].array(library='np')
+    D3pV_ele = targettree['D3pV_ele'].array(library='np')
+    D3pVp_ele = targettree['D3pVp_ele'].array(library='np')
+
+    D3mU_ele = targettree['D3mU_ele'].array(library='np')
+    D3mUp_ele = targettree['D3mUp_ele'].array(library='np')
+    D3mX_ele = targettree['D3mX_ele'].array(library='np')
+    D3mXp_ele = targettree['D3mXp_ele'].array(library='np')
+    D3mV_ele = targettree['D3mV_ele'].array(library='np')
+    D3mVp_ele = targettree['D3mVp_ele'].array(library='np')
+
+    D0U_drift = targettree['D0U_drift'].array(library='np')
+    D0Up_drift = targettree['D0Up_drift'].array(library='np')
+    D0X_drift = targettree['D0X_drift'].array(library='np')
+    D0Xp_drift = targettree['D0Xp_drift'].array(library='np')
+    D0V_drift = targettree['D0V_drift'].array(library='np')
+    D0Vp_drift = targettree['D0Vp_drift'].array(library='np')
+
+    D2U_drift = targettree['D2U_drift'].array(library='np')
+    D2Up_drift = targettree['D2Up_drift'].array(library='np')
+    D2X_drift = targettree['D2X_drift'].array(library='np')
+    D2Xp_drift = targettree['D2Xp_drift'].array(library='np')
+    D2V_drift = targettree['D2V_drift'].array(library='np')
+    D2Vp_drift = targettree['D2Vp_drift'].array(library='np')
+
+    D3pU_drift = targettree['D3pU_drift'].array(library='np')
+    D3pUp_drift = targettree['D3pUp_drift'].array(library='np')
+    D3pX_drift = targettree['D3pX_drift'].array(library='np')
+    D3pXp_drift = targettree['D3pXp_drift'].array(library='np')
+    D3pV_drift = targettree['D3pV_drift'].array(library='np')
+    D3pVp_drift = targettree['D3pVp_drift'].array(library='np')
+
+    D3mU_drift = targettree['D3mU_drift'].array(library='np')
+    D3mUp_drift = targettree['D3mUp_drift'].array(library='np')
+    D3mX_drift = targettree['D3mX_drift'].array(library='np')
+    D3mXp_drift = targettree['D3mXp_drift'].array(library='np')
+    D3mV_drift = targettree['D3mV_drift'].array(library='np')
+    D3mVp_drift = targettree['D3mVp_drift'].array(library='np')
+
+    H1B_ele = targettree['H1B_ele'].array(library='np')
+    H1T_ele = targettree['H1T_ele'].array(library='np')
+    H1L_ele = targettree['H1L_ele'].array(library='np')
+    H1R_ele = targettree['H1R_ele'].array(library='np')
+
+    H2L_ele = targettree['H2L_ele'].array(library='np')
+    H2R_ele = targettree['H2R_ele'].array(library='np')
+    H2B_ele = targettree['H2B_ele'].array(library='np')
+    H2T_ele = targettree['H2T_ele'].array(library='np')
+
+    H3B_ele = targettree['H3B_ele'].array(library='np')
+    H3T_ele = targettree['H3T_ele'].array(library='np')
+
+    H4Y1L_ele = targettree['H4Y1L_ele'].array(library='np')
+    H4Y1R_ele = targettree['H4Y1R_ele'].array(library='np')
+    H4Y2L_ele = targettree['H4Y2L_ele'].array(library='np')
+    H4Y2R_ele = targettree['H4Y2R_ele'].array(library='np')
+    H4B_ele = targettree['H4B_ele'].array(library='np')
+    H4T_ele = targettree['H4T_ele'].array(library='np')
+
+    P1Y1_ele = targettree['P1Y1_ele'].array(library='np')
+    P1Y2_ele = targettree['P1Y2_ele'].array(library='np')
+    P1X1_ele = targettree['P1X1_ele'].array(library='np')
+    P1X2_ele = targettree['P1X2_ele'].array(library='np')
+
+    P2X1_ele = targettree['P2X1_ele'].array(library='np')
+    P2X2_ele = targettree['P2X2_ele'].array(library='np')
+    P2Y1_ele = targettree['P2Y1_ele'].array(library='np')
+    P2Y2_ele = targettree['P2Y2_ele'].array(library='np')
+
+    gpx = targettree['gpx'].array(library='np')
+    gpy = targettree['gpy'].array(library='np')
+    gpz = targettree['gpz'].array(library='np')
+    gvx = targettree['gvx'].array(library='np')
+    gvy = targettree['gvy'].array(library='np')
+    gvz = targettree['gvz'].array(library='np')
+
+    pid = targettree['pid'].array(library='np')
+
+    print('Done')
+
+    #This reads the dimuon tracks from the target into an array
+    pos_events=np.zeros((targetevents,54))
+    pos_drift = np.zeros((targetevents,30))
+    pos_kinematics = np.zeros((targetevents,6))
+    neg_events=np.zeros((targetevents,54))
+    neg_drift = np.zeros((targetevents,30))
+    neg_kinematics = np.zeros((targetevents,6))
+    print("Reading target events...")
+    for j in range(targetevents):
+        if(j%100==0):print(j,end="\r") #This is to keep track of how quickly the events are being generated
+        first=pid[j][0]
+        if(first>0):
+            pos=0
+            neg=1
+        else:
+            pos=1
+            neg=0
+        pos_kinematics[j][0] = gpx[j][pos]
+        pos_kinematics[j][1] = gpy[j][pos]
+        pos_kinematics[j][2] = gpz[j][pos]
+        pos_kinematics[j][3] = gvx[j][pos]
+        pos_kinematics[j][4] = gvy[j][pos]
+        pos_kinematics[j][5] = gvz[j][pos]
+        neg_kinematics[j][0] = gpx[j][neg]
+        neg_kinematics[j][1] = gpy[j][neg]
+        neg_kinematics[j][2] = gpz[j][neg]
+        neg_kinematics[j][3] = gvx[j][neg]
+        neg_kinematics[j][4] = gvy[j][neg]
+        neg_kinematics[j][5] = gvz[j][neg]
+        pos_events[j][0]=D0U_ele[j][pos]
+        neg_events[j][0]=D0U_ele[j][neg]
+        pos_events[j][1]=D0Up_ele[j][pos]
+        neg_events[j][1]=D0Up_ele[j][neg]
+        pos_events[j][2]=D0X_ele[j][pos]
+        neg_events[j][2]=D0X_ele[j][neg]        
+        pos_events[j][3]=D0Xp_ele[j][pos]
+        neg_events[j][3]=D0Xp_ele[j][neg]
+        pos_events[j][4]=D0V_ele[j][pos]
+        neg_events[j][4]=D0V_ele[j][neg]
+        pos_events[j][5]=D0Vp_ele[j][pos]
+        neg_events[j][5]=D0Vp_ele[j][neg]
+        pos_events[j][16]=D2U_ele[j][pos]
+        neg_events[j][16]=D2U_ele[j][neg]
+        pos_events[j][17]=D2Up_ele[j][pos]
+        neg_events[j][17]=D2Up_ele[j][neg]
+        pos_events[j][15]=D2X_ele[j][pos]
+        neg_events[j][15]=D2X_ele[j][neg]
+        pos_events[j][14]=D2Xp_ele[j][pos]
+        neg_events[j][14]=D2Xp_ele[j][neg]
+        pos_events[j][12]=D2V_ele[j][pos]
+        neg_events[j][12]=D2V_ele[j][neg]
+        pos_events[j][13]=D2Vp_ele[j][pos]
+        neg_events[j][13]=D2Vp_ele[j][neg]
+        pos_events[j][23]=D3pU_ele[j][pos]
+        neg_events[j][23]=D3pU_ele[j][neg]
+        pos_events[j][22]=D3pUp_ele[j][pos]
+        neg_events[j][22]=D3pUp_ele[j][neg]
+        pos_events[j][21]=D3pX_ele[j][pos]
+        neg_events[j][21]=D3pX_ele[j][neg]
+        pos_events[j][20]=D3pXp_ele[j][pos]
+        neg_events[j][20]=D3pXp_ele[j][neg]
+        pos_events[j][19]=D3pV_ele[j][pos]
+        neg_events[j][19]=D3pV_ele[j][neg]
+        pos_events[j][18]=D3pVp_ele[j][pos]
+        neg_events[j][18]=D3pVp_ele[j][neg]
+        pos_events[j][29]=D3mU_ele[j][pos]
+        neg_events[j][29]=D3mU_ele[j][neg]
+        pos_events[j][28]=D3mUp_ele[j][pos]
+        neg_events[j][28]=D3mUp_ele[j][neg]
+        pos_events[j][27]=D3mX_ele[j][pos]
+        neg_events[j][27]=D3mX_ele[j][neg]
+        pos_events[j][26]=D3mXp_ele[j][pos]
+        neg_events[j][26]=D3mXp_ele[j][neg]
+        pos_events[j][25]=D3mV_ele[j][pos]
+        neg_events[j][25]=D3mV_ele[j][neg]
+        pos_events[j][24]=D3mVp_ele[j][pos]
+        neg_events[j][24]=D3mVp_ele[j][neg]
+        pos_events[j][30]=H1B_ele[j][pos]
+        neg_events[j][30]=H1B_ele[j][neg]
+        pos_events[j][31]=H1T_ele[j][pos]
+        neg_events[j][31]=H1T_ele[j][neg]
+        pos_events[j][32]=H1L_ele[j][pos]
+        neg_events[j][32]=H1L_ele[j][neg]
+        pos_events[j][33]=H1R_ele[j][pos]
+        neg_events[j][33]=H1R_ele[j][neg]
+        pos_events[j][34]=H2L_ele[j][pos]
+        neg_events[j][34]=H2L_ele[j][neg]
+        pos_events[j][35]=H2R_ele[j][pos]
+        neg_events[j][35]=H2R_ele[j][neg]
+        pos_events[j][36]=H2T_ele[j][pos]
+        neg_events[j][36]=H2T_ele[j][neg]
+        pos_events[j][37]=H2B_ele[j][pos]
+        neg_events[j][37]=H2B_ele[j][neg]
+        pos_events[j][38]=H3B_ele[j][pos]
+        neg_events[j][38]=H3B_ele[j][neg]
+        pos_events[j][39]=H3T_ele[j][pos]
+        neg_events[j][39]=H3T_ele[j][neg]
+        pos_events[j][40]=H4Y1L_ele[j][pos]
+        neg_events[j][40]=H4Y1L_ele[j][neg]
+        pos_events[j][41]=H4Y1R_ele[j][pos]
+        neg_events[j][41]=H4Y1R_ele[j][neg]
+        pos_events[j][42]=H4Y2L_ele[j][pos]
+        neg_events[j][42]=H4Y2L_ele[j][neg]
+        pos_events[j][43]=H4Y2R_ele[j][pos]
+        neg_events[j][43]=H4Y2R_ele[j][neg]
+        pos_events[j][44]=H4B_ele[j][pos]
+        neg_events[j][44]=H4B_ele[j][neg]
+        pos_events[j][45]=H4T_ele[j][pos]
+        neg_events[j][45]=H4T_ele[j][neg]
+        pos_events[j][46]=P1Y1_ele[j][pos]
+        neg_events[j][46]=P1Y1_ele[j][neg]
+        pos_events[j][47]=P1Y2_ele[j][pos]
+        neg_events[j][47]=P1Y2_ele[j][neg]
+        pos_events[j][48]=P1X1_ele[j][pos]
+        neg_events[j][48]=P1X1_ele[j][neg]
+        pos_events[j][49]=P1X2_ele[j][pos]
+        neg_events[j][49]=P1X2_ele[j][neg]
+        pos_events[j][50]=P2X1_ele[j][pos]
+        neg_events[j][50]=P2X1_ele[j][neg]
+        pos_events[j][51]=P2X2_ele[j][pos]
+        neg_events[j][51]=P2X2_ele[j][neg]
+        pos_events[j][52]=P2Y1_ele[j][pos]
+        neg_events[j][52]=P2Y1_ele[j][neg]
+        pos_events[j][53]=P2Y2_ele[j][pos]
+        neg_events[j][53]=P2Y2_ele[j][neg]
+        pos_drift[j][pos]=D0U_drift[j][pos]
+        pos_drift[j][pos]=D0U_drift[j][pos]
+        neg_drift[j][pos]=D0U_drift[j][neg]
+        pos_drift[j][neg]=D0Up_drift[j][pos]
+        neg_drift[j][neg]=D0Up_drift[j][neg]
+        pos_drift[j][2]=D0X_drift[j][pos]
+        neg_drift[j][2]=D0X_drift[j][neg]        
+        pos_drift[j][3]=D0Xp_drift[j][pos]
+        neg_drift[j][3]=D0Xp_drift[j][neg]
+        pos_drift[j][4]=D0V_drift[j][pos]
+        neg_drift[j][4]=D0V_drift[j][neg]
+        pos_drift[j][5]=D0Vp_drift[j][pos]
+        neg_drift[j][5]=D0Vp_drift[j][neg]
+        pos_drift[j][16]=D2U_drift[j][pos]
+        neg_drift[j][16]=D2U_drift[j][neg]
+        pos_drift[j][17]=D2Up_drift[j][pos]
+        neg_drift[j][17]=D2Up_drift[j][neg]
+        pos_drift[j][15]=D2X_drift[j][pos]
+        neg_drift[j][15]=D2X_drift[j][neg]
+        pos_drift[j][14]=D2Xp_drift[j][pos]
+        neg_drift[j][14]=D2Xp_drift[j][neg]
+        pos_drift[j][12]=D2V_drift[j][pos]
+        neg_drift[j][12]=D2V_drift[j][neg]
+        pos_drift[j][13]=D2Vp_drift[j][pos]
+        neg_drift[j][13]=D2Vp_drift[j][neg]
+        pos_drift[j][23]=D3pU_drift[j][pos]
+        neg_drift[j][23]=D3pU_drift[j][neg]
+        pos_drift[j][22]=D3pUp_drift[j][pos]
+        neg_drift[j][22]=D3pUp_drift[j][neg]
+        pos_drift[j][21]=D3pX_drift[j][pos]
+        neg_drift[j][21]=D3pX_drift[j][neg]
+        pos_drift[j][20]=D3pXp_drift[j][pos]
+        neg_drift[j][20]=D3pXp_drift[j][neg]
+        pos_drift[j][19]=D3pV_drift[j][pos]
+        neg_drift[j][19]=D3pV_drift[j][neg]
+        pos_drift[j][18]=D3pVp_drift[j][pos]
+        neg_drift[j][18]=D3pVp_drift[j][neg]
+        pos_drift[j][29]=D3mU_drift[j][pos]
+        neg_drift[j][29]=D3mU_drift[j][neg]
+        pos_drift[j][28]=D3mUp_drift[j][pos]
+        neg_drift[j][28]=D3mUp_drift[j][neg]
+        pos_drift[j][27]=D3mX_drift[j][pos]
+        neg_drift[j][27]=D3mX_drift[j][neg]
+        pos_drift[j][26]=D3mXp_drift[j][pos]
+        neg_drift[j][26]=D3mXp_drift[j][neg]
+        pos_drift[j][25]=D3mV_drift[j][pos]
+        neg_drift[j][25]=D3mV_drift[j][neg]
+        pos_drift[j][24]=D3mVp_drift[j][pos]
+        neg_drift[j][24]=D3mVp_drift[j][neg]
+    print("Done")
+
+    return pos_events, pos_drift, pos_kinematics, neg_events, neg_drift, neg_kinematics
 
 
-#Import MC Events
-print("Reading ROOT files...")
-targettree = uproot.open('Root_Files/Z_Train_QA_v2.root:QA_ana')
-targetdata = targettree.arrays(library="np")
-targetevents=len(targetdata['n_tracks'])
-print("Done")
+pos_events, pos_drift, pos_kinematics, neg_events, neg_drift, neg_kinematics = read_root_file('Root_Files/Z_Train_QA_v2.root')
+pos_events_val, pos_drift_val, pos_kinematics_val, neg_events_val, neg_drift_val, neg_kinematics_val = read_root_file('Root_Files/Z_Val_QA_v2.root')
 
-#This reads the dimuon tracks from the target into an array
-pos_events=np.zeros((targetevents,54))
-neg_events=np.zeros((targetevents,54))
-print("Reading target events...")
-for j in range(targetevents):
-    #if(j%100==0):print(j,end="\r") #This is to keep track of how quickly the events are being generated
-    first=targetdata['pid'][j][0]
-    if(first>0):
-        pos_events[j][0]=targetdata['D0U_ele'][j][0]
-        neg_events[j][0]=targetdata['D0U_ele'][j][1]
-        pos_events[j][1]=targetdata['D0Up_ele'][j][0]
-        neg_events[j][1]=targetdata['D0Up_ele'][j][1]
-        pos_events[j][2]=targetdata['D0X_ele'][j][0]
-        neg_events[j][2]=targetdata['D0X_ele'][j][1]        
-        pos_events[j][3]=targetdata['D0Xp_ele'][j][0]
-        neg_events[j][3]=targetdata['D0Xp_ele'][j][1]
-        pos_events[j][4]=targetdata['D0V_ele'][j][0]
-        neg_events[j][4]=targetdata['D0V_ele'][j][1]
-        pos_events[j][5]=targetdata['D0Vp_ele'][j][0]
-        neg_events[j][5]=targetdata['D0Vp_ele'][j][1]
-        pos_events[j][16]=targetdata['D2U_ele'][j][0]
-        neg_events[j][16]=targetdata['D2U_ele'][j][1]
-        pos_events[j][17]=targetdata['D2Up_ele'][j][0]
-        neg_events[j][17]=targetdata['D2Up_ele'][j][1]
-        pos_events[j][15]=targetdata['D2X_ele'][j][0]
-        neg_events[j][15]=targetdata['D2X_ele'][j][1]
-        pos_events[j][14]=targetdata['D2Xp_ele'][j][0]
-        neg_events[j][14]=targetdata['D2Xp_ele'][j][1]
-        pos_events[j][12]=targetdata['D2V_ele'][j][0]
-        neg_events[j][12]=targetdata['D2V_ele'][j][1]
-        pos_events[j][13]=targetdata['D2Vp_ele'][j][0]
-        neg_events[j][13]=targetdata['D2Vp_ele'][j][1]
-        pos_events[j][23]=targetdata['D3pU_ele'][j][0]
-        neg_events[j][23]=targetdata['D3pU_ele'][j][1]
-        pos_events[j][22]=targetdata['D3pUp_ele'][j][0]
-        neg_events[j][22]=targetdata['D3pUp_ele'][j][1]
-        pos_events[j][21]=targetdata['D3pX_ele'][j][0]
-        neg_events[j][21]=targetdata['D3pX_ele'][j][1]
-        pos_events[j][20]=targetdata['D3pXp_ele'][j][0]
-        neg_events[j][20]=targetdata['D3pXp_ele'][j][1]
-        pos_events[j][19]=targetdata['D3pV_ele'][j][0]
-        neg_events[j][19]=targetdata['D3pV_ele'][j][1]
-        pos_events[j][18]=targetdata['D3pVp_ele'][j][0]
-        neg_events[j][18]=targetdata['D3pVp_ele'][j][1]
-        pos_events[j][29]=targetdata['D3mU_ele'][j][0]
-        neg_events[j][29]=targetdata['D3mU_ele'][j][1]
-        pos_events[j][28]=targetdata['D3mUp_ele'][j][0]
-        neg_events[j][28]=targetdata['D3mUp_ele'][j][1]
-        pos_events[j][27]=targetdata['D3mX_ele'][j][0]
-        neg_events[j][27]=targetdata['D3mX_ele'][j][1]
-        pos_events[j][26]=targetdata['D3mXp_ele'][j][0]
-        neg_events[j][26]=targetdata['D3mXp_ele'][j][1]
-        pos_events[j][25]=targetdata['D3mV_ele'][j][0]
-        neg_events[j][25]=targetdata['D3mV_ele'][j][1]
-        pos_events[j][24]=targetdata['D3mVp_ele'][j][0]
-        neg_events[j][24]=targetdata['D3mVp_ele'][j][1]
-        pos_events[j][30]=targetdata['H1B_ele'][j][0]
-        neg_events[j][30]=targetdata['H1B_ele'][j][1]
-        pos_events[j][31]=targetdata['H1T_ele'][j][0]
-        neg_events[j][31]=targetdata['H1T_ele'][j][1]
-        pos_events[j][32]=targetdata['H1L_ele'][j][0]
-        neg_events[j][32]=targetdata['H1L_ele'][j][1]
-        pos_events[j][33]=targetdata['H1R_ele'][j][0]
-        neg_events[j][33]=targetdata['H1R_ele'][j][1]
-        pos_events[j][34]=targetdata['H2L_ele'][j][0]
-        neg_events[j][34]=targetdata['H2L_ele'][j][1]
-        pos_events[j][35]=targetdata['H2R_ele'][j][0]
-        neg_events[j][35]=targetdata['H2R_ele'][j][1]
-        pos_events[j][36]=targetdata['H2T_ele'][j][0]
-        neg_events[j][36]=targetdata['H2T_ele'][j][1]
-        pos_events[j][37]=targetdata['H2B_ele'][j][0]
-        neg_events[j][37]=targetdata['H2B_ele'][j][1]
-        pos_events[j][38]=targetdata['H3B_ele'][j][0]
-        neg_events[j][38]=targetdata['H3B_ele'][j][1]
-        pos_events[j][39]=targetdata['H3T_ele'][j][0]
-        neg_events[j][39]=targetdata['H3T_ele'][j][1]
-        pos_events[j][40]=targetdata['H4Y1L_ele'][j][0]
-        neg_events[j][40]=targetdata['H4Y1L_ele'][j][1]
-        pos_events[j][41]=targetdata['H4Y1R_ele'][j][0]
-        neg_events[j][41]=targetdata['H4Y1R_ele'][j][1]
-        pos_events[j][42]=targetdata['H4Y2L_ele'][j][0]
-        neg_events[j][42]=targetdata['H4Y2L_ele'][j][1]
-        pos_events[j][43]=targetdata['H4Y2R_ele'][j][0]
-        neg_events[j][43]=targetdata['H4Y2R_ele'][j][1]
-        pos_events[j][44]=targetdata['H4B_ele'][j][0]
-        neg_events[j][44]=targetdata['H4B_ele'][j][1]
-        pos_events[j][45]=targetdata['H4T_ele'][j][0]
-        neg_events[j][45]=targetdata['H4T_ele'][j][1]
-        pos_events[j][46]=targetdata['P1Y1_ele'][j][0]
-        neg_events[j][46]=targetdata['P1Y1_ele'][j][1]
-        pos_events[j][47]=targetdata['P1Y2_ele'][j][0]
-        neg_events[j][47]=targetdata['P1Y2_ele'][j][1]
-        pos_events[j][48]=targetdata['P1X1_ele'][j][0]
-        neg_events[j][48]=targetdata['P1X1_ele'][j][1]
-        pos_events[j][49]=targetdata['P1X2_ele'][j][0]
-        neg_events[j][49]=targetdata['P1X2_ele'][j][1]
-        pos_events[j][50]=targetdata['P2X1_ele'][j][0]
-        neg_events[j][50]=targetdata['P2X1_ele'][j][1]
-        pos_events[j][51]=targetdata['P2X2_ele'][j][0]
-        neg_events[j][51]=targetdata['P2X2_ele'][j][1]
-        pos_events[j][52]=targetdata['P2Y1_ele'][j][0]
-        neg_events[j][52]=targetdata['P2Y1_ele'][j][1]
-        pos_events[j][53]=targetdata['P2Y2_ele'][j][0]
-        neg_events[j][53]=targetdata['P2Y2_ele'][j][1]
-    else:
-        pos_events[j][0]=targetdata['D0U_ele'][j][1]
-        neg_events[j][0]=targetdata['D0U_ele'][j][0]
-        pos_events[j][1]=targetdata['D0Up_ele'][j][1]
-        neg_events[j][1]=targetdata['D0Up_ele'][j][0]
-        pos_events[j][2]=targetdata['D0X_ele'][j][1]
-        neg_events[j][2]=targetdata['D0X_ele'][j][0]        
-        pos_events[j][3]=targetdata['D0Xp_ele'][j][1]
-        neg_events[j][3]=targetdata['D0Xp_ele'][j][0]
-        pos_events[j][4]=targetdata['D0V_ele'][j][1]
-        neg_events[j][4]=targetdata['D0V_ele'][j][0]
-        pos_events[j][5]=targetdata['D0Vp_ele'][j][1]
-        neg_events[j][5]=targetdata['D0Vp_ele'][j][0]
-        pos_events[j][16]=targetdata['D2U_ele'][j][1]
-        neg_events[j][16]=targetdata['D2U_ele'][j][0]
-        pos_events[j][17]=targetdata['D2Up_ele'][j][1]
-        neg_events[j][17]=targetdata['D2Up_ele'][j][0]
-        pos_events[j][15]=targetdata['D2X_ele'][j][1]
-        neg_events[j][15]=targetdata['D2X_ele'][j][0]
-        pos_events[j][14]=targetdata['D2Xp_ele'][j][1]
-        neg_events[j][14]=targetdata['D2Xp_ele'][j][0]
-        pos_events[j][12]=targetdata['D2V_ele'][j][1]
-        neg_events[j][12]=targetdata['D2V_ele'][j][0]
-        pos_events[j][13]=targetdata['D2Vp_ele'][j][1]
-        neg_events[j][13]=targetdata['D2Vp_ele'][j][0]
-        pos_events[j][23]=targetdata['D3pU_ele'][j][1]
-        neg_events[j][23]=targetdata['D3pU_ele'][j][0]
-        pos_events[j][22]=targetdata['D3pUp_ele'][j][1]
-        neg_events[j][22]=targetdata['D3pUp_ele'][j][0]
-        pos_events[j][21]=targetdata['D3pX_ele'][j][1]
-        neg_events[j][21]=targetdata['D3pX_ele'][j][0]
-        pos_events[j][20]=targetdata['D3pXp_ele'][j][1]
-        neg_events[j][20]=targetdata['D3pXp_ele'][j][0]
-        pos_events[j][19]=targetdata['D3pV_ele'][j][1]
-        neg_events[j][19]=targetdata['D3pV_ele'][j][0]
-        pos_events[j][18]=targetdata['D3pVp_ele'][j][1]
-        neg_events[j][18]=targetdata['D3pVp_ele'][j][0]
-        pos_events[j][29]=targetdata['D3mU_ele'][j][1]
-        neg_events[j][29]=targetdata['D3mU_ele'][j][0]
-        pos_events[j][28]=targetdata['D3mUp_ele'][j][1]
-        neg_events[j][28]=targetdata['D3mUp_ele'][j][0]
-        pos_events[j][27]=targetdata['D3mX_ele'][j][1]
-        neg_events[j][27]=targetdata['D3mX_ele'][j][0]
-        pos_events[j][26]=targetdata['D3mXp_ele'][j][1]
-        neg_events[j][26]=targetdata['D3mXp_ele'][j][0]
-        pos_events[j][25]=targetdata['D3mV_ele'][j][1]
-        neg_events[j][25]=targetdata['D3mV_ele'][j][0]
-        pos_events[j][24]=targetdata['D3mVp_ele'][j][1]
-        neg_events[j][24]=targetdata['D3mVp_ele'][j][0]
-        pos_events[j][30]=targetdata['H1B_ele'][j][1]
-        neg_events[j][30]=targetdata['H1B_ele'][j][0]
-        pos_events[j][31]=targetdata['H1T_ele'][j][1]
-        neg_events[j][31]=targetdata['H1T_ele'][j][0]
-        pos_events[j][32]=targetdata['H1L_ele'][j][1]
-        neg_events[j][32]=targetdata['H1L_ele'][j][0]
-        pos_events[j][33]=targetdata['H1R_ele'][j][1]
-        neg_events[j][33]=targetdata['H1R_ele'][j][0]
-        pos_events[j][34]=targetdata['H2L_ele'][j][1]
-        neg_events[j][34]=targetdata['H2L_ele'][j][0]
-        pos_events[j][35]=targetdata['H2R_ele'][j][1]
-        neg_events[j][35]=targetdata['H2R_ele'][j][0]
-        pos_events[j][36]=targetdata['H2T_ele'][j][1]
-        neg_events[j][36]=targetdata['H2T_ele'][j][0]
-        pos_events[j][37]=targetdata['H2B_ele'][j][1]
-        neg_events[j][37]=targetdata['H2B_ele'][j][0]
-        pos_events[j][38]=targetdata['H3B_ele'][j][1]
-        neg_events[j][38]=targetdata['H3B_ele'][j][0]
-        pos_events[j][39]=targetdata['H3T_ele'][j][1]
-        neg_events[j][39]=targetdata['H3T_ele'][j][0]
-        pos_events[j][40]=targetdata['H4Y1L_ele'][j][1]
-        neg_events[j][40]=targetdata['H4Y1L_ele'][j][0]
-        pos_events[j][41]=targetdata['H4Y1R_ele'][j][1]
-        neg_events[j][41]=targetdata['H4Y1R_ele'][j][0]
-        pos_events[j][42]=targetdata['H4Y2L_ele'][j][1]
-        neg_events[j][42]=targetdata['H4Y2L_ele'][j][0]
-        pos_events[j][43]=targetdata['H4Y2R_ele'][j][1]
-        neg_events[j][43]=targetdata['H4Y2R_ele'][j][0]
-        pos_events[j][44]=targetdata['H4B_ele'][j][1]
-        neg_events[j][44]=targetdata['H4B_ele'][j][0]
-        pos_events[j][45]=targetdata['H4T_ele'][j][1]
-        neg_events[j][45]=targetdata['H4T_ele'][j][0]
-        pos_events[j][46]=targetdata['P1Y1_ele'][j][1]
-        neg_events[j][46]=targetdata['P1Y1_ele'][j][0]
-        pos_events[j][47]=targetdata['P1Y2_ele'][j][1]
-        neg_events[j][47]=targetdata['P1Y2_ele'][j][0]
-        pos_events[j][48]=targetdata['P1X1_ele'][j][1]
-        neg_events[j][48]=targetdata['P1X1_ele'][j][0]
-        pos_events[j][49]=targetdata['P1X2_ele'][j][1]
-        neg_events[j][49]=targetdata['P1X2_ele'][j][0]
-        pos_events[j][50]=targetdata['P2X1_ele'][j][1]
-        neg_events[j][50]=targetdata['P2X1_ele'][j][0]
-        pos_events[j][51]=targetdata['P2X2_ele'][j][1]
-        neg_events[j][51]=targetdata['P2X2_ele'][j][0]
-        pos_events[j][52]=targetdata['P2Y1_ele'][j][1]
-        neg_events[j][52]=targetdata['P2Y1_ele'][j][0]
-        pos_events[j][53]=targetdata['P2Y2_ele'][j][1]
-        neg_events[j][53]=targetdata['P2Y2_ele'][j][0]
-print("Done")
-
-del targettree, targetdata,targetevents
-
-
-# In[3]:
-
-
-#Import MC Events
-print("Reading ROOT files...")
-targettree = uproot.open('Root_Files/Z_Val_QA_v2.root:QA_ana')
-targetdata = targettree.arrays(library="np")
-targetevents=len(targetdata['n_tracks'])
-print("Done")
-
-#This reads the dimuon tracks from the target into an array
-pos_events_val=np.zeros((targetevents,54))
-neg_events_val=np.zeros((targetevents,54))
-print("Reading target events...")
-for j in range(targetevents):
-    #if(j%100==0):print(j,end="\r") #This is to keep track of how quickly the events are being generated
-    first=targetdata['pid'][j][0]
-    if(first>0):
-        pos_events_val[j][0]=targetdata['D0U_ele'][j][0]
-        neg_events_val[j][0]=targetdata['D0U_ele'][j][1]
-        pos_events_val[j][1]=targetdata['D0Up_ele'][j][0]
-        neg_events_val[j][1]=targetdata['D0Up_ele'][j][1]
-        pos_events_val[j][2]=targetdata['D0X_ele'][j][0]
-        neg_events_val[j][2]=targetdata['D0X_ele'][j][1]        
-        pos_events_val[j][3]=targetdata['D0Xp_ele'][j][0]
-        neg_events_val[j][3]=targetdata['D0Xp_ele'][j][1]
-        pos_events_val[j][4]=targetdata['D0V_ele'][j][0]
-        neg_events_val[j][4]=targetdata['D0V_ele'][j][1]
-        pos_events_val[j][5]=targetdata['D0Vp_ele'][j][0]
-        neg_events_val[j][5]=targetdata['D0Vp_ele'][j][1]
-        pos_events_val[j][16]=targetdata['D2U_ele'][j][0]
-        neg_events_val[j][16]=targetdata['D2U_ele'][j][1]
-        pos_events_val[j][17]=targetdata['D2Up_ele'][j][0]
-        neg_events_val[j][17]=targetdata['D2Up_ele'][j][1]
-        pos_events_val[j][15]=targetdata['D2X_ele'][j][0]
-        neg_events_val[j][15]=targetdata['D2X_ele'][j][1]
-        pos_events_val[j][14]=targetdata['D2Xp_ele'][j][0]
-        neg_events_val[j][14]=targetdata['D2Xp_ele'][j][1]
-        pos_events_val[j][12]=targetdata['D2V_ele'][j][0]
-        neg_events_val[j][12]=targetdata['D2V_ele'][j][1]
-        pos_events_val[j][13]=targetdata['D2Vp_ele'][j][0]
-        neg_events_val[j][13]=targetdata['D2Vp_ele'][j][1]
-        pos_events_val[j][23]=targetdata['D3pU_ele'][j][0]
-        neg_events_val[j][23]=targetdata['D3pU_ele'][j][1]
-        pos_events_val[j][22]=targetdata['D3pUp_ele'][j][0]
-        neg_events_val[j][22]=targetdata['D3pUp_ele'][j][1]
-        pos_events_val[j][21]=targetdata['D3pX_ele'][j][0]
-        neg_events_val[j][21]=targetdata['D3pX_ele'][j][1]
-        pos_events_val[j][20]=targetdata['D3pXp_ele'][j][0]
-        neg_events_val[j][20]=targetdata['D3pXp_ele'][j][1]
-        pos_events_val[j][19]=targetdata['D3pV_ele'][j][0]
-        neg_events_val[j][19]=targetdata['D3pV_ele'][j][1]
-        pos_events_val[j][18]=targetdata['D3pVp_ele'][j][0]
-        neg_events_val[j][18]=targetdata['D3pVp_ele'][j][1]
-        pos_events_val[j][29]=targetdata['D3mU_ele'][j][0]
-        neg_events_val[j][29]=targetdata['D3mU_ele'][j][1]
-        pos_events_val[j][28]=targetdata['D3mUp_ele'][j][0]
-        neg_events_val[j][28]=targetdata['D3mUp_ele'][j][1]
-        pos_events_val[j][27]=targetdata['D3mX_ele'][j][0]
-        neg_events_val[j][27]=targetdata['D3mX_ele'][j][1]
-        pos_events_val[j][26]=targetdata['D3mXp_ele'][j][0]
-        neg_events_val[j][26]=targetdata['D3mXp_ele'][j][1]
-        pos_events_val[j][25]=targetdata['D3mV_ele'][j][0]
-        neg_events_val[j][25]=targetdata['D3mV_ele'][j][1]
-        pos_events_val[j][24]=targetdata['D3mVp_ele'][j][0]
-        neg_events_val[j][24]=targetdata['D3mVp_ele'][j][1]
-        pos_events_val[j][30]=targetdata['H1B_ele'][j][0]
-        neg_events_val[j][30]=targetdata['H1B_ele'][j][1]
-        pos_events_val[j][31]=targetdata['H1T_ele'][j][0]
-        neg_events_val[j][31]=targetdata['H1T_ele'][j][1]
-        pos_events_val[j][32]=targetdata['H1L_ele'][j][0]
-        neg_events_val[j][32]=targetdata['H1L_ele'][j][1]
-        pos_events_val[j][33]=targetdata['H1R_ele'][j][0]
-        neg_events_val[j][33]=targetdata['H1R_ele'][j][1]
-        pos_events_val[j][34]=targetdata['H2L_ele'][j][0]
-        neg_events_val[j][34]=targetdata['H2L_ele'][j][1]
-        pos_events_val[j][35]=targetdata['H2R_ele'][j][0]
-        neg_events_val[j][35]=targetdata['H2R_ele'][j][1]
-        pos_events_val[j][36]=targetdata['H2T_ele'][j][0]
-        neg_events_val[j][36]=targetdata['H2T_ele'][j][1]
-        pos_events_val[j][37]=targetdata['H2B_ele'][j][0]
-        neg_events_val[j][37]=targetdata['H2B_ele'][j][1]
-        pos_events_val[j][38]=targetdata['H3B_ele'][j][0]
-        neg_events_val[j][38]=targetdata['H3B_ele'][j][1]
-        pos_events_val[j][39]=targetdata['H3T_ele'][j][0]
-        neg_events_val[j][39]=targetdata['H3T_ele'][j][1]
-        pos_events_val[j][40]=targetdata['H4Y1L_ele'][j][0]
-        neg_events_val[j][40]=targetdata['H4Y1L_ele'][j][1]
-        pos_events_val[j][41]=targetdata['H4Y1R_ele'][j][0]
-        neg_events_val[j][41]=targetdata['H4Y1R_ele'][j][1]
-        pos_events_val[j][42]=targetdata['H4Y2L_ele'][j][0]
-        neg_events_val[j][42]=targetdata['H4Y2L_ele'][j][1]
-        pos_events_val[j][43]=targetdata['H4Y2R_ele'][j][0]
-        neg_events_val[j][43]=targetdata['H4Y2R_ele'][j][1]
-        pos_events_val[j][44]=targetdata['H4B_ele'][j][0]
-        neg_events_val[j][44]=targetdata['H4B_ele'][j][1]
-        pos_events_val[j][45]=targetdata['H4T_ele'][j][0]
-        neg_events_val[j][45]=targetdata['H4T_ele'][j][1]
-        pos_events_val[j][46]=targetdata['P1Y1_ele'][j][0]
-        neg_events_val[j][46]=targetdata['P1Y1_ele'][j][1]
-        pos_events_val[j][47]=targetdata['P1Y2_ele'][j][0]
-        neg_events_val[j][47]=targetdata['P1Y2_ele'][j][1]
-        pos_events_val[j][48]=targetdata['P1X1_ele'][j][0]
-        neg_events_val[j][48]=targetdata['P1X1_ele'][j][1]
-        pos_events_val[j][49]=targetdata['P1X2_ele'][j][0]
-        neg_events_val[j][49]=targetdata['P1X2_ele'][j][1]
-        pos_events_val[j][50]=targetdata['P2X1_ele'][j][0]
-        neg_events_val[j][50]=targetdata['P2X1_ele'][j][1]
-        pos_events_val[j][51]=targetdata['P2X2_ele'][j][0]
-        neg_events_val[j][51]=targetdata['P2X2_ele'][j][1]
-        pos_events_val[j][52]=targetdata['P2Y1_ele'][j][0]
-        neg_events_val[j][52]=targetdata['P2Y1_ele'][j][1]
-        pos_events_val[j][53]=targetdata['P2Y2_ele'][j][0]
-        neg_events_val[j][53]=targetdata['P2Y2_ele'][j][1]
-    else:
-        pos_events_val[j][0]=targetdata['D0U_ele'][j][1]
-        neg_events_val[j][0]=targetdata['D0U_ele'][j][0]
-        pos_events_val[j][1]=targetdata['D0Up_ele'][j][1]
-        neg_events_val[j][1]=targetdata['D0Up_ele'][j][0]
-        pos_events_val[j][2]=targetdata['D0X_ele'][j][1]
-        neg_events_val[j][2]=targetdata['D0X_ele'][j][0]        
-        pos_events_val[j][3]=targetdata['D0Xp_ele'][j][1]
-        neg_events_val[j][3]=targetdata['D0Xp_ele'][j][0]
-        pos_events_val[j][4]=targetdata['D0V_ele'][j][1]
-        neg_events_val[j][4]=targetdata['D0V_ele'][j][0]
-        pos_events_val[j][5]=targetdata['D0Vp_ele'][j][1]
-        neg_events_val[j][5]=targetdata['D0Vp_ele'][j][0]
-        pos_events_val[j][16]=targetdata['D2U_ele'][j][1]
-        neg_events_val[j][16]=targetdata['D2U_ele'][j][0]
-        pos_events_val[j][17]=targetdata['D2Up_ele'][j][1]
-        neg_events_val[j][17]=targetdata['D2Up_ele'][j][0]
-        pos_events_val[j][15]=targetdata['D2X_ele'][j][1]
-        neg_events_val[j][15]=targetdata['D2X_ele'][j][0]
-        pos_events_val[j][14]=targetdata['D2Xp_ele'][j][1]
-        neg_events_val[j][14]=targetdata['D2Xp_ele'][j][0]
-        pos_events_val[j][12]=targetdata['D2V_ele'][j][1]
-        neg_events_val[j][12]=targetdata['D2V_ele'][j][0]
-        pos_events_val[j][13]=targetdata['D2Vp_ele'][j][1]
-        neg_events_val[j][13]=targetdata['D2Vp_ele'][j][0]
-        pos_events_val[j][23]=targetdata['D3pU_ele'][j][1]
-        neg_events_val[j][23]=targetdata['D3pU_ele'][j][0]
-        pos_events_val[j][22]=targetdata['D3pUp_ele'][j][1]
-        neg_events_val[j][22]=targetdata['D3pUp_ele'][j][0]
-        pos_events_val[j][21]=targetdata['D3pX_ele'][j][1]
-        neg_events_val[j][21]=targetdata['D3pX_ele'][j][0]
-        pos_events_val[j][20]=targetdata['D3pXp_ele'][j][1]
-        neg_events_val[j][20]=targetdata['D3pXp_ele'][j][0]
-        pos_events_val[j][19]=targetdata['D3pV_ele'][j][1]
-        neg_events_val[j][19]=targetdata['D3pV_ele'][j][0]
-        pos_events_val[j][18]=targetdata['D3pVp_ele'][j][1]
-        neg_events_val[j][18]=targetdata['D3pVp_ele'][j][0]
-        pos_events_val[j][29]=targetdata['D3mU_ele'][j][1]
-        neg_events_val[j][29]=targetdata['D3mU_ele'][j][0]
-        pos_events_val[j][28]=targetdata['D3mUp_ele'][j][1]
-        neg_events_val[j][28]=targetdata['D3mUp_ele'][j][0]
-        pos_events_val[j][27]=targetdata['D3mX_ele'][j][1]
-        neg_events_val[j][27]=targetdata['D3mX_ele'][j][0]
-        pos_events_val[j][26]=targetdata['D3mXp_ele'][j][1]
-        neg_events_val[j][26]=targetdata['D3mXp_ele'][j][0]
-        pos_events_val[j][25]=targetdata['D3mV_ele'][j][1]
-        neg_events_val[j][25]=targetdata['D3mV_ele'][j][0]
-        pos_events_val[j][24]=targetdata['D3mVp_ele'][j][1]
-        neg_events_val[j][24]=targetdata['D3mVp_ele'][j][0]
-        pos_events_val[j][30]=targetdata['H1B_ele'][j][1]
-        neg_events_val[j][30]=targetdata['H1B_ele'][j][0]
-        pos_events_val[j][31]=targetdata['H1T_ele'][j][1]
-        neg_events_val[j][31]=targetdata['H1T_ele'][j][0]
-        pos_events_val[j][32]=targetdata['H1L_ele'][j][1]
-        neg_events_val[j][32]=targetdata['H1L_ele'][j][0]
-        pos_events_val[j][33]=targetdata['H1R_ele'][j][1]
-        neg_events_val[j][33]=targetdata['H1R_ele'][j][0]
-        pos_events_val[j][34]=targetdata['H2L_ele'][j][1]
-        neg_events_val[j][34]=targetdata['H2L_ele'][j][0]
-        pos_events_val[j][35]=targetdata['H2R_ele'][j][1]
-        neg_events_val[j][35]=targetdata['H2R_ele'][j][0]
-        pos_events_val[j][36]=targetdata['H2T_ele'][j][1]
-        neg_events_val[j][36]=targetdata['H2T_ele'][j][0]
-        pos_events_val[j][37]=targetdata['H2B_ele'][j][1]
-        neg_events_val[j][37]=targetdata['H2B_ele'][j][0]
-        pos_events_val[j][38]=targetdata['H3B_ele'][j][1]
-        neg_events_val[j][38]=targetdata['H3B_ele'][j][0]
-        pos_events_val[j][39]=targetdata['H3T_ele'][j][1]
-        neg_events_val[j][39]=targetdata['H3T_ele'][j][0]
-        pos_events_val[j][40]=targetdata['H4Y1L_ele'][j][1]
-        neg_events_val[j][40]=targetdata['H4Y1L_ele'][j][0]
-        pos_events_val[j][41]=targetdata['H4Y1R_ele'][j][1]
-        neg_events_val[j][41]=targetdata['H4Y1R_ele'][j][0]
-        pos_events_val[j][42]=targetdata['H4Y2L_ele'][j][1]
-        neg_events_val[j][42]=targetdata['H4Y2L_ele'][j][0]
-        pos_events_val[j][43]=targetdata['H4Y2R_ele'][j][1]
-        neg_events_val[j][43]=targetdata['H4Y2R_ele'][j][0]
-        pos_events_val[j][44]=targetdata['H4B_ele'][j][1]
-        neg_events_val[j][44]=targetdata['H4B_ele'][j][0]
-        pos_events_val[j][45]=targetdata['H4T_ele'][j][1]
-        neg_events_val[j][45]=targetdata['H4T_ele'][j][0]
-        pos_events_val[j][46]=targetdata['P1Y1_ele'][j][1]
-        neg_events_val[j][46]=targetdata['P1Y1_ele'][j][0]
-        pos_events_val[j][47]=targetdata['P1Y2_ele'][j][1]
-        neg_events_val[j][47]=targetdata['P1Y2_ele'][j][0]
-        pos_events_val[j][48]=targetdata['P1X1_ele'][j][1]
-        neg_events_val[j][48]=targetdata['P1X1_ele'][j][0]
-        pos_events_val[j][49]=targetdata['P1X2_ele'][j][1]
-        neg_events_val[j][49]=targetdata['P1X2_ele'][j][0]
-        pos_events_val[j][50]=targetdata['P2X1_ele'][j][1]
-        neg_events_val[j][50]=targetdata['P2X1_ele'][j][0]
-        pos_events_val[j][51]=targetdata['P2X2_ele'][j][1]
-        neg_events_val[j][51]=targetdata['P2X2_ele'][j][0]
-        pos_events_val[j][52]=targetdata['P2Y1_ele'][j][1]
-        neg_events_val[j][52]=targetdata['P2Y1_ele'][j][0]
-        pos_events_val[j][53]=targetdata['P2Y2_ele'][j][1]
-        neg_events_val[j][53]=targetdata['P2Y2_ele'][j][0]
-print("Done")
-
-del targettree, targetdata,targetevents
-
-
-# In[4]:
-
+del pos_drift, neg_drift, pos_kinematics, neg_kinematics
+del pos_drift_val, neg_drift_val, pos_kinematics_val, neg_kinematics_val
 
 @njit(parallel=True)
 def clean(events):
@@ -462,52 +307,6 @@ pos_events=clean(pos_events).astype(int)
 neg_events=clean(neg_events).astype(int)
 pos_events_val=clean(pos_events_val).astype(int)
 neg_events_val=clean(neg_events_val).astype(int)
-
-
-# In[5]:
-
-
-neg_events=neg_events[np.count_nonzero(pos_events[:,:30],axis=1)>=18]
-pos_events=pos_events[np.count_nonzero(pos_events[:,:30],axis=1)>=18]
-
-pos_events=pos_events[np.count_nonzero(neg_events[:,:30],axis=1)>=18]
-neg_events=neg_events[np.count_nonzero(neg_events[:,:30],axis=1)>=18]
-
-neg_events=neg_events[np.count_nonzero(pos_events[:,30:46],axis=1)>=8]
-pos_events=pos_events[np.count_nonzero(pos_events[:,30:46],axis=1)>=8]
-
-pos_events=pos_events[np.count_nonzero(neg_events[:,30:46],axis=1)>=8]
-neg_events=neg_events[np.count_nonzero(neg_events[:,30:46],axis=1)>=8]
-
-neg_events=neg_events[np.count_nonzero(pos_events[:,46:],axis=1)>=8]
-pos_events=pos_events[np.count_nonzero(pos_events[:,46:],axis=1)>=8]
-
-pos_events=pos_events[np.count_nonzero(neg_events[:,46:],axis=1)>=8]
-neg_events=neg_events[np.count_nonzero(neg_events[:,46:],axis=1)>=8]
-
-
-neg_events_val = neg_events_val[np.count_nonzero(pos_events_val[:,:30],axis=1)>=18]
-pos_events_val = pos_events_val[np.count_nonzero(pos_events_val[:,:30],axis=1)>=18]
-
-pos_events_val = pos_events_val[np.count_nonzero(neg_events_val[:,:30],axis=1)>=18]
-neg_events_val = neg_events_val[np.count_nonzero(neg_events_val[:,:30],axis=1)>=18]
-
-neg_events_val = neg_events_val[np.count_nonzero(pos_events_val[:,30:46],axis=1)>=8]
-pos_events_val = pos_events_val[np.count_nonzero(pos_events_val[:,30:46],axis=1)>=8]
-
-pos_events_val = pos_events_val[np.count_nonzero(neg_events_val[:,30:46],axis=1)>=8]
-neg_events_val = neg_events_val[np.count_nonzero(neg_events_val[:,30:46],axis=1)>=8]
-
-neg_events_val = neg_events_val[np.count_nonzero(pos_events_val[:,46:],axis=1)>=8]
-pos_events_val = pos_events_val[np.count_nonzero(pos_events_val[:,46:],axis=1)>=8]
-
-pos_events_val = pos_events_val[np.count_nonzero(neg_events_val[:,46:],axis=1)>=8]
-neg_events_val = neg_events_val[np.count_nonzero(neg_events_val[:,46:],axis=1)>=8]
-
-
-
-# In[7]:
-
 
 @njit(parallel=True)
 def track_injection(hits,pos_e,neg_e):
@@ -526,7 +325,7 @@ def track_injection(hits,pos_e,neg_e):
                         hits[z][k][int(pos_e[j][k]-1)]=1
                     track[z][k]=pos_e[j][k]
                 if(neg_e[j2][k]>0):
-                    if(random.random()<0.94)or (k>29):
+                    if(random.random()<0.94) or (k>29):
                         hits[z][k][int(neg_e[j2][k]-1)]=1
                     track[z][k+54]=neg_e[j2][k]
             category[z][0]=3
@@ -649,10 +448,6 @@ def track_injection(hits,pos_e,neg_e):
         trackreal[z][33+34]=track[z][53+54]
     return hits,category,trackreal
 
-
-# In[8]:
-
-
 @njit(nopython=True)
 def hit_matrix(detectorid,elementid,hits,station): #Convert into hit matrices
     for j in range (len(detectorid)):
@@ -702,10 +497,6 @@ def hit_matrix_mc(detectorid,elementid,hits,station): #Convert into hit matrices
                 hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
     return hits
 
-
-# In[9]:
-
-
 def generate_e906(n_events, tvt):
     #Import NIM3 events and put them on the hit matrices.
     #Randomly choosing between 1 and 6 events per station gets approximately the correct occupancies.
@@ -748,17 +539,12 @@ max_ele = [200, 200, 168, 168, 200, 200, 128, 128,  112,  112, 128, 128, 134, 13
         72,  72,  72]
 
 
-# In[14]:
-
-
 learning_rate_finder=1e-6
 callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
-n_train = 0
+n_train=0
 
-# In[ ]:
-
-
-while(n_train<1e7):
+print("Before while loop:", n_train)
+while(n_train<8e6):
     trainin, trainsignals, traintrack = generate_e906(750000, "Train")
     print("Generated Training Data")
     traintrack = traintrack/max_ele
@@ -808,6 +594,5 @@ while(n_train<1e7):
     del trainin, valin, traintrack, valtrack,model
     gc.collect()  # Force garbage collection to release GPU memory
     print(n_train)
-
 
 

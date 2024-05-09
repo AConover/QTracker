@@ -1,4 +1,5 @@
 import os
+#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import numpy as np
 import uproot
 from numba import njit, prange
@@ -117,6 +118,7 @@ def read_root_file(root_file):
     neg_kinematics = np.zeros((targetevents,6))
     print("Reading target events...")
     for j in range(targetevents):
+        if(j%100==0):print(j,end="\r") #This is to keep track of how quickly the events are being generated
         first=pid[j][0]
         if(first>0):
             pos=0
@@ -286,8 +288,11 @@ def read_root_file(root_file):
     return pos_events, pos_drift, pos_kinematics, neg_events, neg_drift, neg_kinematics
 
 
-pos_events, pos_drift, pos_kinematics, neg_events, neg_drift, neg_kinematics = read_root_file('Root_Files/Z_Train_QA_v2.root')
-pos_events_val, pos_drift_val, pos_kinematics_val, neg_events_val, neg_drift_val, neg_kinematics_val = read_root_file('Root_Files/Z_Val_QA_v2.root')
+pos_events, pos_drift, pos_kinematics, neg_events, neg_drift, neg_kinematics = read_root_file('Root_Files/Dump_Train_QA_v2.root')
+pos_events_val, pos_drift_val, pos_kinematics_val, neg_events_val, neg_drift_val, neg_kinematics_val = read_root_file('Root_Files/Dump_Val_QA_v2.root')
+
+del pos_drift, neg_drift, pos_kinematics, neg_kinematics
+del pos_drift_val, neg_drift_val, pos_kinematics_val, neg_kinematics_val
 
 @njit(parallel=True)
 def clean(events):
@@ -304,113 +309,227 @@ pos_events_val=clean(pos_events_val).astype(int)
 neg_events_val=clean(neg_events_val).astype(int)
 
 @njit(parallel=True)
-def track_injection(hits,drift,pos_e,neg_e,pos_d,neg_d,pos_k,neg_k):
+def track_injection(hits,pos_e,neg_e):
     #Start generating the events
-    kin=np.zeros((len(hits),9))
+    category=np.zeros((len(hits),1))
+    track=np.zeros((len(hits),108))
+    trackreal=np.zeros((len(hits),68))
     for z in prange(len(hits)):
-        j=random.randrange(len(pos_e))
-        kin[z][0]=pos_k[j][0]
-        kin[z][1]=pos_k[j][1]
-        kin[z][2]=pos_k[j][2]
-        kin[z][3]=neg_k[j][0]
-        kin[z][4]=neg_k[j][1]
-        kin[z][5]=neg_k[j][2]
-        kin[z][6]=pos_k[j][3]
-        kin[z][7]=pos_k[j][4]
-        kin[z][8]=pos_k[j][5]
-        for k in range(54):
-            if(pos_e[j][k]>0):
-                if(random.random()<0.94) and (k<30):
-                    hits[z][k][int(pos_e[j][k]-1)]=1
-                    drift[z][k][int(pos_e[j][k]-1)]=pos_d[j][k]
-                if(k>29):
-                    hits[z][k][int(pos_e[j][k]-1)]=1
+        m = 7#random.randrange(0,12)#For track finding, set this to m = 7 (only generates dimuons)
+        if(m==7):#Dimuon pair
+            j=random.randrange(len(pos_e))
+            j2=j#random.randrange(len(neg_e))
+            for k in range(54):
+                if(pos_e[j][k]>0):
+                    if(random.random()<0.94) or (k>29):
+                        hits[z][k][int(pos_e[j][k]-1)]=1
+                    track[z][k]=pos_e[j][k]
+                if(neg_e[j2][k]>0):
+                    if(random.random()<0.94) or (k>29):
+                        hits[z][k][int(neg_e[j2][k]-1)]=1
+                    track[z][k+54]=neg_e[j2][k]
+            category[z][0]=3
+            #Re-writes track information so that parallel detectors are stored in the same entry.
+        trackreal[z][0]=track[z][0]    
+        trackreal[z][1]=track[z][1]
+        trackreal[z][2]=track[z][2]
+        trackreal[z][3]=track[z][3]
+        trackreal[z][4]=track[z][4]
+        trackreal[z][5]=track[z][5]
+        trackreal[z][6]=track[z][12]
+        trackreal[z][7]=track[z][13]
+        trackreal[z][8]=track[z][14]
+        trackreal[z][9]=track[z][15]
+        trackreal[z][10]=track[z][16]
+        trackreal[z][11]=track[z][17]
+        if(track[z][18]>0):
+            trackreal[z][12]=track[z][18]
+            trackreal[z][13]=track[z][19]
+            trackreal[z][14]=track[z][20]
+            trackreal[z][15]=track[z][21]
+            trackreal[z][16]=track[z][22]
+            trackreal[z][17]=track[z][23]
+        else:
+            trackreal[z][12]=-track[z][24]
+            trackreal[z][13]=-track[z][25]
+            trackreal[z][14]=-track[z][26]
+            trackreal[z][15]=-track[z][27]
+            trackreal[z][16]=-track[z][28]
+            trackreal[z][17]=-track[z][29]
+        
+        if(track[z][30]>0):trackreal[z][18]=track[z][30]
+        else:trackreal[z][18]=-track[z][31]
+        if(track[z][32]>0):trackreal[z][19]=track[z][32]
+        else:trackreal[z][19]=-track[z][33]
+        
+        if(track[z][34]>0):trackreal[z][20]=track[z][34]
+        else:trackreal[z][20]=-track[z][35]
+        if(track[z][36]>0):trackreal[z][21]=track[z][36]
+        else:trackreal[z][21]=-track[z][37]
+            
+        if(track[z][38]>0):trackreal[z][22]=track[z][38]
+        else:trackreal[z][22]=-track[z][39]
+            
+        if(track[z][40]>0):trackreal[z][23]=track[z][40]
+        else:trackreal[z][23]=-track[z][41]
+        if(track[z][42]>0):trackreal[z][24]=track[z][42]
+        else:trackreal[z][24]=-track[z][43]
+        if(track[z][44]>0):trackreal[z][25]=track[z][44]
+        else:trackreal[z][25]=-track[z][45]
+            
+            
+        trackreal[z][26]=track[z][46]
+        trackreal[z][27]=track[z][47]
+        trackreal[z][28]=track[z][48]
+        trackreal[z][29]=track[z][49]
+        trackreal[z][30]=track[z][50]
+        trackreal[z][31]=track[z][51]
+        trackreal[z][32]=track[z][52]
+        trackreal[z][33]=track[z][53]
+        
+        
+        rc = 34
+        tc = 54
+        trackreal[z][0+34]=track[z][0+54]
+        trackreal[z][1+34]=track[z][1+54]
+        trackreal[z][2+34]=track[z][2+54]
+        trackreal[z][3+34]=track[z][3+54]
+        trackreal[z][4+34]=track[z][4+54]
+        trackreal[z][5+34]=track[z][5+54]
+        trackreal[z][6+34]=track[z][12+54]
+        trackreal[z][7+34]=track[z][13+54]
+        trackreal[z][8+34]=track[z][14+54]
+        trackreal[z][9+34]=track[z][15+54]
+        trackreal[z][10+34]=track[z][16+54]
+        trackreal[z][11+34]=track[z][17+54]
+        if(track[z][18+54]>0):
+            trackreal[z][12+34]=track[z][18+54]
+            trackreal[z][13+34]=track[z][19+54]
+            trackreal[z][14+34]=track[z][20+54]
+            trackreal[z][15+34]=track[z][21+54]
+            trackreal[z][16+34]=track[z][22+54]
+            trackreal[z][17+34]=track[z][23+54]
+        else:
+            trackreal[z][12+34]=-track[z][24+54]
+            trackreal[z][13+34]=-track[z][25+54]
+            trackreal[z][14+34]=-track[z][26+54]
+            trackreal[z][15+34]=-track[z][27+54]
+            trackreal[z][16+34]=-track[z][28+54]
+            trackreal[z][17+34]=-track[z][29+54]
+        
+        if(track[z][30+54]>0):trackreal[z][18+34]=track[z][30+54]
+        else:trackreal[z][18+34]=-track[z][31+54]
+        if(track[z][32+54]>0):trackreal[z][19+34]=track[z][32+54]
+        else:trackreal[z][19+34]=-track[z][33+54]
+        
+        if(track[z][34+54]>0):trackreal[z][20+34]=track[z][34+54]
+        else:trackreal[z][20+34]=-track[z][35+54]
+        if(track[z][36+54]>0):trackreal[z][21+34]=track[z][36+54]
+        else:trackreal[z][21+34]=-track[z][37+54]
+            
+        if(track[z][38+54]>0):trackreal[z][22+34]=track[z][38+54]
+        else:trackreal[z][22+34]=-track[z][39+54]
+            
+        if(track[z][40+54]>0):trackreal[z][23+34]=track[z][40+54]
+        else:trackreal[z][23+34]=-track[z][41+54]
+        if(track[z][42+54]>0):trackreal[z][24+34]=track[z][42+54]
+        else:trackreal[z][24+34]=-track[z][43+54]
+        if(track[z][44+54]>0):trackreal[z][25+34]=track[z][44+54]
+        else:trackreal[z][25+34]=-track[z][45+54]
+            
+            
+        trackreal[z][26+34]=track[z][46+54]
+        trackreal[z][27+34]=track[z][47+54]
+        trackreal[z][28+34]=track[z][48+54]
+        trackreal[z][29+34]=track[z][49+54]
+        trackreal[z][30+34]=track[z][50+54]
+        trackreal[z][31+34]=track[z][51+54]
+        trackreal[z][32+34]=track[z][52+54]
+        trackreal[z][33+34]=track[z][53+54]
+    return hits,category,trackreal
 
-            if(neg_e[j][k]>0):
-                if(random.random()<0.94) and (k<30):
-                    hits[z][k][int(neg_e[j][k]-1)]=1
-                    drift[z][k][int(neg_e[j][k]-1)]=neg_d[j][k]
-                if(k>29):
-                    hits[z][k][int(neg_e[j][k]-1)]=1
-
-    return hits,drift,kin
-
-@njit()
-def hit_matrix(detectorid,elementid,drifttime,hits,drift,station): #Convert into hit matrices
+@njit(nopython=True)
+def hit_matrix(detectorid,elementid,hits,station): #Convert into hit matrices
     for j in range (len(detectorid)):
         rand = random.random()
         #St 1
         if(station==1) and (rand<0.85):
             if ((detectorid[j]<7) or (detectorid[j]>30)) and (detectorid[j]<35):
                 hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
-                drift[int(detectorid[j])-1][int(elementid[j]-1)]=drifttime[j]
         #St 2
         elif(station==2):
             if (detectorid[j]>12 and (detectorid[j]<19)) or ((detectorid[j]>34) and (detectorid[j]<39)):
                 if((detectorid[j]<15) and (rand<0.76)) or ((detectorid[j]>14) and (rand<0.86)) or (detectorid[j]==17):
                     hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
-                    drift[int(detectorid[j])-1][int(elementid[j]-1)]=drifttime[j]
         #St 3
         elif(station==3) and (rand<0.8):
-            if (detectorid[j]>18 and (detectorid[j]<31)) or ((detectorid[j]==39) or (detectorid[j]==40)):
+            if (detectorid[j]>18 and (detectorid[j]<31)) or ((detectorid[j]>38) and (detectorid[j]<47)):
                 hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
-                drift[int(detectorid[j])-1][int(elementid[j]-1)]=drifttime[j]
         #St 4
         elif(station==4):
-            if ((detectorid[j]>39) and (detectorid[j]<55)):
+            if ((detectorid[j]>40) and (detectorid[j]<55)):
                 hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
-                drift[int(detectorid[j])-1][int(elementid[j]-1)]=drifttime[j]
-    return hits,drift
+        if(rand<0.25):
+            if ((detectorid[j]>40) and (detectorid[j]<47)): 
+                hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
+    return hits
 
-# Function to evaluate the Track Finder neural network.
-@njit(parallel=True)
-def evaluate_finder(testin, testdrift, predictions):
-    # The function constructs inputs for the neural network model based on test data
-    # and predictions, processing each event in parallel for efficiency.
-    reco_in = np.zeros((len(testin), 68, 2))
+
+@njit(nopython=True)
+def hit_matrix_mc(detectorid,elementid,hits,station): #Convert into hit matrices
+    for j in prange (len(detectorid)):
+        #St 1
+        if(station==1):
+            if ((detectorid[j]<7) or (detectorid[j]>30)) and (detectorid[j]<35):
+                hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
+        #St 2
+        elif(station==2):
+            if (detectorid[j]>12 and (detectorid[j]<19)) or ((detectorid[j]>34) and (detectorid[j]<39)):
+                if((detectorid[j]<15) and (rand<0.76)) or ((detectorid[j]>14) and (rand<0.86)) or (detectorid[j]==17):
+                    hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
+        #St 3
+        elif(station==3):
+            if (detectorid[j]>18 and (detectorid[j]<31)) or ((detectorid[j]>38) and (detectorid[j]<47)):
+                hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
+        #St 4
+        elif(station==4):
+            if ((detectorid[j]>40) and (detectorid[j]<55)):
+                hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
+    return hits
+
+def generate_e906(n_events, tvt):
+    #Import NIM3 events and put them on the hit matrices.
+    #Randomly choosing between 1 and 6 events per station gets approximately the correct occupancies.
+    filelist=['output_part1.root:tree_nim3','output_part2.root:tree_nim3','output_part3.root:tree_nim3',
+             'output_part4.root:tree_nim3','output_part5.root:tree_nim3','output_part6.root:tree_nim3',
+             'output_part7.root:tree_nim3']
+    targettree = uproot.open("NIM3/"+random.choice(filelist))
+    detectorid_nim3=targettree["det_id"].arrays(library="np")["det_id"]
+    elementid_nim3=targettree["ele_id"].arrays(library="np")["ele_id"]
+    hits = np.zeros((n_events,54,201))
+    for n in range (n_events): #Create NIM3 events
+        g=random.choice([0,1,2,3,4,5,6])
+        for m in range(g):
+            i=random.randrange(len(detectorid_nim3))
+            hits[n]=hit_matrix(detectorid_nim3[i],elementid_nim3[i],hits[n],1)
+            i=random.randrange(len(detectorid_nim3))
+            hits[n]=hit_matrix(detectorid_nim3[i],elementid_nim3[i],hits[n],2)
+            i=random.randrange(len(detectorid_nim3))
+            hits[n]=hit_matrix(detectorid_nim3[i],elementid_nim3[i],hits[n],3)
+            i=random.randrange(len(detectorid_nim3))
+            hits[n]=hit_matrix(detectorid_nim3[i],elementid_nim3[i],hits[n],4)
+    del detectorid_nim3, elementid_nim3
     
-    def process_entry(i, dummy, j_offset):
-        j = dummy if dummy <= 5 else dummy + 6
-        if dummy > 11:
-            if predictions[i][12+j_offset] > 0:
-                j = dummy + 6
-            elif predictions[i][12+j_offset] < 0:
-                j = dummy + 12
+    #Place the full tracks that are reconstructable
+    if(tvt=="Train"):
+        hits,category,track=track_injection(hits,pos_events,neg_events)    
+    if(tvt=="Val"):
+        hits,category,track=track_injection(hits,pos_events_val,neg_events_val)    
+    return hits.astype(bool), category.astype(int), track.astype(int)
 
-        if dummy > 17:
-            j = 2 * (dummy - 18) + 30 if predictions[i][2 * (dummy - 18) + 30 + j_offset] > 0 else 2 * (dummy - 18) + 31
 
-        if dummy > 25:
-            j = dummy + 20
+# In[10]:
 
-        k = abs(predictions[i][dummy + j_offset])
-        sign = k / predictions[i][dummy + j_offset] if k > 0 else 1
-        if(dummy<6):window=15
-        elif(dummy<12):window=5
-        elif(dummy<18):window=5
-        elif(dummy<26):window=1
-        else:window=3
-        k_sum = np.sum(testin[i][j][k - window:k + window-1])
-        if k_sum > 0 and ((dummy < 18) or (dummy > 25)):
-            k_temp = k
-            n = 1
-            while testin[i][j][k - 1] == 0:
-                k_temp += n
-                n = -n * (abs(n) + 1) / abs(n)
-                if 0 <= k_temp < 201:
-                    k = int(k_temp)
-
-        reco_in[i][dummy + j_offset][0] = sign * k
-        reco_in[i][dummy + j_offset][1] = testdrift[i][j][k - 1]
-
-    for i in prange(predictions.shape[0]):
-        for dummy in prange(34):
-            process_entry(i, dummy, 0)
-        
-        for dummy in prange(34):
-            process_entry(i, dummy, 34)      
-
-    return reco_in
 
 max_ele = [200, 200, 168, 168, 200, 200, 128, 128,  112,  112, 128, 128, 134, 134, 
            112, 112, 134, 134,  20,  20,  16,  16,  16,  16,  16,  16,
@@ -419,81 +538,61 @@ max_ele = [200, 200, 168, 168, 200, 200, 128, 128,  112,  112, 128, 128, 134, 13
         20,  20,  16,  16,  16,  16,  16,  16,  72,  72,  72,  72,  72,
         72,  72,  72]
 
-def generate_e906(n_events, tvt):
-    #Import NIM3 events and put them on the hit matrices.
-    #Randomly choosing between 1 and 6 events per station gets approximately the correct occupancies.
-    filelist=['output_part1.root:tree_nim3','output_part2.root:tree_nim3','output_part3.root:tree_nim3',
-             'output_part4.root:tree_nim3','output_part5.root:tree_nim3','output_part6.root:tree_nim3',
-             'output_part7.root:tree_nim3','output_part8.root:tree_nim3','output_part9.root:tree_nim3']
-    targettree = uproot.open("NIM3/"+random.choice(filelist))
-    detectorid_nim3=targettree["det_id"].arrays(library="np")["det_id"]
-    elementid_nim3=targettree["ele_id"].arrays(library="np")["ele_id"]
-    driftdistance_nim3=targettree["drift_dist"].arrays(library="np")["drift_dist"]
-    hits = np.zeros((n_events,54,201))
-    drift = np.zeros((n_events,54,201))
-    for n in range (n_events): #Create NIM3 events
-        g=random.choice([1,2,3,4,5,6])
-        for m in range(g):
-            i=random.randrange(len(detectorid_nim3))
-            hits[n],drift[n]=hit_matrix(detectorid_nim3[i],elementid_nim3[i],driftdistance_nim3[i],hits[n],drift[n],1)
-            i=random.randrange(len(detectorid_nim3))
-            hits[n],drift[n]=hit_matrix(detectorid_nim3[i],elementid_nim3[i],driftdistance_nim3[i],hits[n],drift[n],2)
-            i=random.randrange(len(detectorid_nim3))
-            hits[n],drift[n]=hit_matrix(detectorid_nim3[i],elementid_nim3[i],driftdistance_nim3[i],hits[n],drift[n],3)
-            i=random.randrange(len(detectorid_nim3))
-            hits[n],drift[n]=hit_matrix(detectorid_nim3[i],elementid_nim3[i],driftdistance_nim3[i],hits[n],drift[n],4)
-    del detectorid_nim3, elementid_nim3,driftdistance_nim3
+
+learning_rate_finder=1e-6
+callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+n_train=0
+
+print("Before while loop:", n_train)
+while(n_train<8e6):
+    trainin, trainsignals, traintrack = generate_e906(750000, "Train")
+    print("Generated Training Data")
+    traintrack = traintrack/max_ele
+    #del traintrack
     
-    #Place the full tracks that are reconstructable
-    if(tvt=="Train"):
-        hits,drift,kinematics=track_injection(hits,drift,pos_events,neg_events,pos_drift,neg_drift,pos_kinematics,neg_kinematics)    
-    if(tvt=="Val"):
-        hits,drift,kinematics=track_injection(hits,drift,pos_events_val,neg_events_val,pos_drift_val,neg_drift_val,pos_kinematics_val,neg_kinematics_val)    
-    return hits.astype(bool), drift, kinematics
-
-n_train = 0
-train_input = []
-val_input = []
-train_kinematics = []
-val_kinematics = []
-
-while(n_train<1e7):
-    valin, valdrift, valkinematics = generate_e906(50000, "Val")
-    trainin, traindrift, trainkinematics = generate_e906(500000, "Train")
+    valin, valsignals, valtrack = generate_e906(75000, "Val")
+    print("Generated Validation Data")
+    valtrack = valtrack/max_ele
+    #del valtrack
+    
     tf.keras.backend.clear_session()
+    
     model = tf.keras.models.load_model('Networks/event_filter')
     probability_model = tf.keras.Sequential([model, tf.keras.layers.Softmax()])
-    val_predictions = probability_model.predict(valin,batch_size = 256, verbose=0)
-    tf.keras.backend.clear_session()
-    model = tf.keras.models.load_model('Networks/event_filter')
-    probability_model = tf.keras.Sequential([model, tf.keras.layers.Softmax()])
-    train_predictions = probability_model.predict(trainin,batch_size = 256, verbose=0)
+    val_predictions = probability_model.predict(valin,batch_size=225)
+    train_predictions = probability_model.predict(trainin,batch_size=225)
+
 
     trainin=trainin[train_predictions[:,3]>0.75]
-    traindrift=traindrift[train_predictions[:,3]>0.75]
-    train_kinematics.append(trainkinematics[train_predictions[:,3]>0.75])
+    traintrack=traintrack[train_predictions[:,3]>0.75]
 
     valin=valin[val_predictions[:,3]>0.75]
-    valdrift=valdrift[val_predictions[:,3]>0.75]
-    val_kinematics.append(valkinematics[val_predictions[:,3]>0.75])
-
-    del val_predictions, train_predictions
-    tf.keras.backend.clear_session()
-    model = tf.keras.models.load_model('Networks/Track_Finder_Z')
-    predictions = (np.round(model.predict(valin, verbose=0)*max_ele)).astype(int)
-    val_input.append(evaluate_finder(valin,valdrift,predictions))
-    tf.keras.backend.clear_session()
-    model = tf.keras.models.load_model('Networks/Track_Finder_Z')
-    predictions = (np.round(model.predict(trainin, verbose=0)*max_ele)).astype(int)
-    train_input.append(evaluate_finder(trainin,traindrift,predictions))
+    valtrack=valtrack[val_predictions[:,3]>0.75]
+    
     n_train+=len(trainin)
-    del trainin, valin, traindrift, valdrift, predictions
     
-    np.save('Training_Data/Z_Val_In.npy',np.concatenate((val_input)))
-    np.save('Training_Data/Z_Val_Out.npy',np.concatenate((val_kinematics)))
-    np.save('Training_Data/Z_Train_In.npy',np.concatenate((train_input)))
-    np.save('Training_Data/Z_Train_Out.npy',np.concatenate((train_kinematics)))
-    
+    del train_predictions, val_predictions
+    del model
+    tf.keras.backend.clear_session()
+    gc.collect()
+    # Specify the optimizer, and compile the model with loss functions for both outputs
+    model = tf.keras.models.load_model('Networks/Track_Finder_Dump')
+    optimizer = tf.keras.optimizers.Adam(learning_rate_finder)
+    model.compile(optimizer=optimizer,
+              loss=tf.keras.losses.mse,
+              metrics=tf.keras.metrics.RootMeanSquaredError())
+
+    val_loss_before=model.evaluate(valin,valtrack,batch_size=100,verbose=2)[0]
+    print(val_loss_before)
+    history = model.fit(trainin, traintrack,
+                    epochs=1000, batch_size=100, verbose=2, validation_data=(valin,valtrack),callbacks=[callback])
+    if(min(history.history['val_loss'])<val_loss_before):
+        model.save('Networks/Track_Finder_Dump')
+        learning_rate_finder=learning_rate_finder*2
+    learning_rate_finder=learning_rate_finder/2
+    tf.keras.backend.clear_session()
+    del trainin, valin, traintrack, valtrack,model
+    gc.collect()  # Force garbage collection to release GPU memory
     print(n_train)
 
 
