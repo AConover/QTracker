@@ -26,8 +26,7 @@ model = tf.keras.Sequential([
 model.save('Networks/event_filter')
 
 
-#Define Track Finder Networks
-
+#Track Finder Networks
 model = tf.keras.Sequential([
     tf.keras.layers.Conv2D(512, (3, 3), activation='relu', input_shape=(54,201,1)),
     tf.keras.layers.MaxPooling2D((2, 2)),
@@ -56,12 +55,21 @@ model = tf.keras.Sequential([
     tf.keras.layers.Dense(512, activation='relu'),
     tf.keras.layers.Dense(256, activation='relu'),
     tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dense(68, activation='linear')
+    tf.keras.layers.Dense(34, activation='linear')
     ])
+#Save the individual muon track finders.
+model.save('Networks/Track_Finder_Pos')
+model.save('Networks/Track_Finder_Neg')
 
+#Change the output layer to shape 68 to make it work for dimuon track finding.
+model.pop()  # Remove the final layer
+model.add(tf.keras.layers.Dense(68, activation='linear')) 
+
+#Save the dimuon track finders.
 model.save('Networks/Track_Finder_All')
 model.save('Networks/Track_Finder_Z')
 model.save('Networks/Track_Finder_Target')
+model.save('Networks/Track_Finder_Dump')
 
 # Define Kinematic Reconstruction Networks
 model = tf.keras.Sequential([
@@ -79,8 +87,25 @@ model = tf.keras.Sequential([
 model.save('Networks/Reconstruction_All')
 model.save('Networks/Reconstruction_Z')
 model.save('Networks/Reconstruction_Target')
+model.save('Networks/Reconstruction_Dump')
 
-#Define the vertex finding networks.
+#Define the single muon vertex finding networks.
+model = tf.keras.Sequential([
+    tf.keras.layers.Input(shape=(34,2)),
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(512,activation='relu'),
+    tf.keras.layers.Dense(256,activation='relu'),
+    tf.keras.layers.Dense(128,activation='relu'),
+    tf.keras.layers.Dense(64,activation='relu'),
+    tf.keras.layers.Dense(32,activation='relu'),
+    tf.keras.layers.Dense(16,activation='relu'),
+    tf.keras.layers.Dense(1)])
+
+#Save the individual muon vertex finders.
+model.save('Networks/Vertexing_Pos')
+model.save('Networks/Vertexing_Neg')
+
+#Define the dimuon vertex finding networks.
 model = tf.keras.Sequential([
     tf.keras.layers.Input(shape=(71,2)),
     tf.keras.layers.Flatten(),
