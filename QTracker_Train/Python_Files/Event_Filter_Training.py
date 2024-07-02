@@ -9,6 +9,7 @@ import gc
 
 def read_root_file(root_file):
     print("Reading ROOT files...")
+    #Reads information from MC.
     targettree = uproot.open(root_file+':QA_ana')
     targetevents=len(targettree['n_tracks'].array(library='np'))
     D0U_ele = targettree['D0U_ele'].array(library='np')
@@ -108,7 +109,7 @@ def read_root_file(root_file):
 
     print('Done')
 
-    #This reads the dimuon tracks from the target into an array
+    # Initialize arrays for storing event data
     pos_events=np.zeros((targetevents,54))
     pos_drift = np.zeros((targetevents,30))
     pos_kinematics = np.zeros((targetevents,6))
@@ -117,7 +118,6 @@ def read_root_file(root_file):
     neg_kinematics = np.zeros((targetevents,6))
     print("Reading target events...")
     for j in range(targetevents):
-        if(j%100==0):print(j,end="\r") #This is to keep track of how quickly the events are being generated
         first=pid[j][0]
         if(first>0):
             pos=0
@@ -285,9 +285,13 @@ def read_root_file(root_file):
 
     return pos_events, pos_drift, pos_kinematics, neg_events, neg_drift, neg_kinematics
 
+
+# Reading training and validation data from ROOT files
 pos_events, pos_drift, pos_kinematics, neg_events, neg_drift, neg_kinematics = read_root_file('Root_Files/Target_Train_QA_v2.root')
 pos_events_val, pos_drift_val, pos_kinematics_val, neg_events_val, neg_drift_val, neg_kinematics_val = read_root_file('Root_Files/Target_Val_QA_v2.root')
 
+
+# Clean event data by setting values > 1000 to 0.
 @njit(parallel=True)
 def clean(events):
     for j in prange(len(events)):
@@ -303,21 +307,20 @@ neg_events_val=clean(neg_events_val).astype(int)
 
 @njit(parallel=True)
 def track_injection(hits,pos_e,neg_e):
-    #Start generating the events
+    # Inject tracks into the hit matrices
     category=np.zeros((len(hits)))
     track=np.zeros((len(hits),108))
     for z in prange(len(hits)):
         m = random.randrange(0,2)
         j=random.randrange(len(pos_e))
-        j2=j#random.randrange(len(neg_e))
         for k in range(54):
             if(pos_e[j][k]>0):
                 if(random.random()<m*0.94) or ((k>29)&(k<45)):
                     hits[z][k][int(pos_e[j][k]-1)]=1
                 track[z][k]=pos_e[j][k]
-            if(neg_e[j2][k]>0):
+            if(neg_e[j][k]>0):
                 if(random.random()<m*0.94) or ((k>29)&(k<45)):
-                    hits[z][k][int(neg_e[j2][k]-1)]=1
+                    hits[z][k][int(neg_e[j][k]-1)]=1
         category[z]=m        
 
     return hits,category
@@ -380,35 +383,50 @@ def generate_e906(n_events, tvt):
         hits,category=track_injection(hits,pos_events_val,neg_events_val)    
     return hits.astype(bool), category.astype(int)
 
-learning_rate_filter=1e-6
+# Set learning rate and callback for early stopping
+learning_rate_filter = 1e-6
 callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
 n_train = 0
 
 print("Before while loop:", n_train)
-while(n_train<1e7):
+while n_train < 1e7:
+    # Generate training and validation data
     trainin, trainsignals = generate_e906(500000, "Train")
-    n_train+=len(trainin)
+    n_train += len(trainin)
     print("Generated Training Data")
     valin, valsignals = generate_e906(50000, "Val")
     print("Generated Validation Data")
+    
+    # Clear session and reset TensorFlow graph
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
     gc.collect()
+
+    # Load and compile the model
     model = tf.keras.models.load_model('Networks/event_filter')
     optimizer = tf.keras.optimizers.Adam(learning_rate_filter)
     model.compile(optimizer=optimizer,
-              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-              metrics=['accuracy'])
-    val_loss_before=model.evaluate(valin,valsignals,batch_size=256,verbose=2)[0]
+                  loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                  metrics=['accuracy'])
+
+    # Evaluate the model before training
+    val_loss_before = model.evaluate(valin, valsignals, batch_size=256, verbose=2)[0]
+
+    # Train the model
     history = model.fit(trainin, trainsignals,
-                    epochs=1000, batch_size=256, verbose=2, validation_data=(valin,valsignals),callbacks=[callback])
-    if(min(history.history['val_loss'])<val_loss_before):
+                        epochs=1000, batch_size=256, verbose=2, validation_data=(valin, valsignals), callbacks=[callback])
+
+    # Check if the validation loss improved
+    if min(history.history['val_loss']) < val_loss_before:
         model.save('Networks/event_filter')
-        learning_rate_filter *=2
-    learning_rate_filter /=2
+        learning_rate_filter *= 2
+    learning_rate_filter /= 2
+
     print('\n')
+
+    # Clear session and force garbage collection to release GPU memory
     tf.keras.backend.clear_session()
-    del trainsignals,trainin,valin,valsignals,model
-    gc.collect()  # Force garbage collection to release GPU memory
+    del trainsignals, trainin, valin, valsignals, model
+    gc.collect()
     print(n_train)
 
