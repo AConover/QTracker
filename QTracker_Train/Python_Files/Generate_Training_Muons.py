@@ -94,24 +94,33 @@ while n_train < 1e7:
     train_predictions = event_filter_probability_model.predict(trainin, batch_size=256, verbose=0)
         
     # Filter based on predictions
-    selection_mask = train_predictions[:, 3] > 0.75
-    trainin = trainin[selection_mask]
-    traindrift = traindrift[selection_mask]
-    train_kinematics.append(trainkinematics[selection_mask])
-    selection_mask = val_predictions[:, 3] > 0.75
-    valin = valin[selection_mask]
-    valdrift = valdrift[selection_mask]
-    val_kinematics.append(valkinematics[selection_mask])
+    selection_mask_train = train_predictions[:, 3] > 0.75
+    trainin = trainin[selection_mask_train]
+    traindrift = traindrift[selection_mask_train]
+    
+    selection_mask_val = val_predictions[:, 3] > 0.75
+    valin = valin[selection_mask_val]
+    valdrift = valdrift[selection_mask_val]
 
-    # Predict with the Track_Finder_All model (preloaded)
+    # Predict with the Track_Finders and filter for values
     pos_predictions = (np.round(track_finder_pos.predict(valin, verbose=0) * max_ele)).astype(int)
     neg_predictions = (np.round(track_finder_neg.predict(valin, verbose=0) * max_ele)).astype(int)
-    val_input.append(evaluate_finder(valin, valdrift, np.column_stack((pos_predictions,neg_predictions))))
+    track_val = evaluate_finder(valin, valdrift, np.column_stack((pos_predictions,neg_predictions)))
+    results = calc_mismatches(track_val)
+    selection_mask_val = selection_mask_val & ((results[0::4] < 2) & (results[1::4] < 2) & (results[2::4] < 3) & (results[3::4] < 3)).all(axis=0)
+    
     pos_predictions = (np.round(track_finder_pos.predict(trainin, verbose=0) * max_ele)).astype(int)
     neg_predictions = (np.round(track_finder_neg.predict(trainin, verbose=0) * max_ele)).astype(int)
-    train_input.append(evaluate_finder(trainin, traindrift, np.column_stack((pos_predictions,neg_predictions))))
+    track_train = evaluate_finder(trainin, traindrift, np.column_stack((pos_predictions,neg_predictions)))
+    results = calc_mismatches(track_train)
+    selection_mask_train = selection_mask_train & ((results[0::4] < 2) & (results[1::4] < 2) & (results[2::4] < 3) & (results[3::4] < 3)).all(axis=0)
+    
+    val_kinematics.append(valkinematics[selection_mask_val])
+    val_input.append(track_val[selection_mask_val][:,:2])
+    train_kinematics.append(trainkinematics[selection_mask_train])
+    train_input.append(track_train[selection_mask_train][:,:2])
 
-    n_train += len(trainin)
+    n_train = len(np.concatenate(train_kinematics))
 
     # Save (use a consistent saving strategy to avoid repeated concatenation)
     np.save('Training_Data/Muon_Val_In.npy', np.concatenate(val_input))  
