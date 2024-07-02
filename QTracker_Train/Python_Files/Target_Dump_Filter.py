@@ -1,17 +1,10 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 import numpy as np
 import tensorflow as tf
 import os
-from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.utils import to_categorical
-
-
 
 # Load data
-target_reco_train = np.load('Training_Data/target_kinematics_train.npy')
-target_tracks_train = np.load('Training_Data/target_tracks_train.npy')
+target_reco_train = np.load('Training_Data/Target_kinematics_train.npy')
+target_tracks_train = np.load('Training_Data/Target_tracks_train.npy')
 filt = np.max(abs(target_reco_train),axis=1)<1000
 target_reco_train = target_reco_train[filt]
 target_tracks_train = target_tracks_train[filt]
@@ -19,8 +12,8 @@ target_train_data = np.column_stack((target_reco_train,target_tracks_train.resha
 del target_reco_train, target_tracks_train
 target_train_labels = np.ones(len(target_train_data))
 
-target_reco_val = np.load('Training_Data/target_kinematics_val.npy')
-target_tracks_val = np.load('Training_Data/target_tracks_val.npy')
+target_reco_val = np.load('Training_Data/Target_kinematics_val.npy')
+target_tracks_val = np.load('Training_Data/Target_tracks_val.npy')
 filt = np.max(abs(target_reco_val),axis=1)<1000
 target_reco_val = target_reco_val[filt]
 target_tracks_val = target_tracks_val[filt]
@@ -30,8 +23,8 @@ target_val_labels = np.ones(len(target_val_data))
 
 
 # Load data
-dump_reco_train = np.load('Training_Data/dump_kinematics_train.npy')
-dump_tracks_train = np.load('Training_Data/dump_tracks_train.npy')
+dump_reco_train = np.load('Training_Data/Dump_kinematics_train.npy')
+dump_tracks_train = np.load('Training_Data/Dump_tracks_train.npy')
 filt = np.max(abs(dump_reco_train),axis=1)<1000
 dump_reco_train = dump_reco_train[filt]
 dump_tracks_train = dump_tracks_train[filt]
@@ -39,8 +32,8 @@ dump_train_data = np.column_stack((dump_reco_train,dump_tracks_train.reshape((le
 del dump_reco_train, dump_tracks_train
 dump_train_labels = np.zeros(len(dump_train_data))
 
-dump_reco_val = np.load('Training_Data/dump_kinematics_val.npy')
-dump_tracks_val = np.load('Training_Data/dump_tracks_val.npy')
+dump_reco_val = np.load('Training_Data/Dump_kinematics_val.npy')
+dump_tracks_val = np.load('Training_Data/Dump_tracks_val.npy')
 filt = np.max(abs(dump_reco_val),axis=1)<1000
 dump_reco_val = dump_reco_val[filt]
 dump_tracks_val = dump_tracks_val[filt]
@@ -75,14 +68,14 @@ y_val = y_val[indices]
 
 model = tf.keras.models.load_model('Networks/target_dump_filter')
 
-optimizer = tf.keras.optimizers.Adam(learning_rate=0.000001)
+optimizer = tf.keras.optimizers.Adam(learning_rate=1e-6)
 
 # Compile the model with the updated optimizer
 model.compile(optimizer=optimizer,
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
 # Set up early stopping
-early_stopping = EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True)
+early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True)
 
 # Train the model
 history = model.fit(X_train, y_train, epochs=10000, batch_size=512, validation_data=(X_val, y_val),
