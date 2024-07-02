@@ -18,14 +18,6 @@ root_file_train = f"Root_Files/{vertex}_Train_QA_v2.root"
 root_file_val = f"Root_Files/{vertex}_Val_QA_v2.root"
 model_name = f"Networks/Track_Finder_{vertex}"
 
-pos_events, pos_drift, pos_kinematics, neg_events, neg_drift, neg_kinematics = read_root_file(root_file_train)
-pos_events_val, pos_drift_val, pos_kinematics_val, neg_events_val, neg_drift_val, neg_kinematics_val = read_root_file(root_file_val)
-
-pos_events=clean(pos_events).astype(int)
-neg_events=clean(neg_events).astype(int)
-pos_events_val=clean(pos_events_val).astype(int)
-neg_events_val=clean(neg_events_val).astype(int)
-
 @njit(parallel=True)
 def track_injection(hits,drift,pos_e,neg_e,pos_d,neg_d,pos_k,neg_k):
     #Start generating the events
@@ -77,6 +69,14 @@ max_ele = [200, 200, 168, 168, 200, 200, 128, 128,  112,  112, 128, 128, 134, 13
         128, 128,  112,  112, 128, 128, 134, 134, 112, 112, 134, 134,
         20,  20,  16,  16,  16,  16,  16,  16,  72,  72,  72,  72,  72,
         72,  72,  72]
+
+pos_events, pos_drift, pos_kinematics, neg_events, neg_drift, neg_kinematics = read_root_file(root_file_train)
+pos_events_val, pos_drift_val, pos_kinematics_val, neg_events_val, neg_drift_val, neg_kinematics_val = read_root_file(root_file_val)
+
+pos_events=clean(pos_events).astype(int)
+neg_events=clean(neg_events).astype(int)
+pos_events_val=clean(pos_events_val).astype(int)
+neg_events_val=clean(neg_events_val).astype(int)
 
 n_train = 0
 train_input = []
