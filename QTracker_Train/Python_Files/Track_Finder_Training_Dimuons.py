@@ -91,7 +91,7 @@ while(n_train<1e7):
     print("Generated Validation Data")
     valtrack = valtrack/max_ele
   
-    # Event Filtering (using a context manager for automatic session clearing)
+    # Event Filtering
     with tf.keras.backend.clear_session():
         probability_model = tf.keras.Sequential([tf.keras.models.load_model('Networks/event_filter'), tf.keras.layers.Softmax()])
         train_predictions = probability_model.predict(trainin, batch_size=225)
@@ -105,7 +105,7 @@ while(n_train<1e7):
     
     n_train+=len(trainin)
         
-    # Model Training (using a context manager for automatic model deletion)
+    # Model Training
     with tf.keras.models.load_model(model_name) as model: 
         optimizer = tf.keras.optimizers.Adam(learning_rate_finder)
         model.compile(optimizer=optimizer, loss='mse', metrics=['RootMeanSquaredError'])
