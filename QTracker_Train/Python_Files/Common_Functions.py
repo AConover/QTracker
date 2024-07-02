@@ -70,30 +70,105 @@ def fill_events_and_drift(detector_data, pos_events, pos_drift, neg_events, neg_
         neg_drift[j][k] = detector_data[f'key_{k}_drift'][j][neg]
 
 @njit()
-def hit_matrix(detectorid,elementid,hits,station): #Convert into hit matrices
+def hit_matrix(detectorid,elementid,drifttime,hits,drift,station): #Convert into hit matrices
     for j in range (len(detectorid)):
         rand = random.random()
         #St 1
         if(station==1) and (rand<0.85):
             if ((detectorid[j]<7) or (detectorid[j]>30)) and (detectorid[j]<35):
                 hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
+                drift[int(detectorid[j])-1][int(elementid[j]-1)]=drifttime[j]
         #St 2
         elif(station==2):
             if (detectorid[j]>12 and (detectorid[j]<19)) or ((detectorid[j]>34) and (detectorid[j]<39)):
                 if((detectorid[j]<15) and (rand<0.76)) or ((detectorid[j]>14) and (rand<0.86)) or (detectorid[j]==17):
                     hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
+                    drift[int(detectorid[j])-1][int(elementid[j]-1)]=drifttime[j]
         #St 3
         elif(station==3) and (rand<0.8):
-            if (detectorid[j]>18 and (detectorid[j]<31)) or ((detectorid[j]>38) and (detectorid[j]<47)):
+            if (detectorid[j]>18 and (detectorid[j]<31)) or ((detectorid[j]==39) or (detectorid[j]==40)):
                 hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
+                drift[int(detectorid[j])-1][int(elementid[j]-1)]=drifttime[j]
         #St 4
         elif(station==4):
-            if ((detectorid[j]>40) and (detectorid[j]<55)):
+            if ((detectorid[j]>39) and (detectorid[j]<55)):
                 hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
-        if(rand<0.25):
-            if ((detectorid[j]>40) and (detectorid[j]<47)): 
-                hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
-    return hits
+                drift[int(detectorid[j])-1][int(elementid[j]-1)]=drifttime[j]
+    return hits,drift
 
 
-def build_background():
+def build_background(n_events):
+    filelist=['output_part1.root:tree_nim3','output_part2.root:tree_nim3','output_part3.root:tree_nim3',
+             'output_part4.root:tree_nim3','output_part5.root:tree_nim3','output_part6.root:tree_nim3',
+             'output_part7.root:tree_nim3','output_part8.root:tree_nim3','output_part9.root:tree_nim3']
+    targettree = uproot.open("NIM3/"+random.choice(filelist))
+    detectorid_nim3=targettree["det_id"].arrays(library="np")["det_id"]
+    elementid_nim3=targettree["ele_id"].arrays(library="np")["ele_id"]
+    driftdistance_nim3=targettree["drift_dist"].arrays(library="np")["drift_dist"]
+    hits = np.zeros((n_events,54,201))
+    drift = np.zeros((n_events,54,201))
+    for n in range (n_events): #Create NIM3 events
+        g=random.choice([1,2,3,4,5,6])
+        for m in range(g):
+            i=random.randrange(len(detectorid_nim3))
+            hits[n],drift[n]=hit_matrix(detectorid_nim3[i],elementid_nim3[i],driftdistance_nim3[i],hits[n],drift[n],1)
+            i=random.randrange(len(detectorid_nim3))
+            hits[n],drift[n]=hit_matrix(detectorid_nim3[i],elementid_nim3[i],driftdistance_nim3[i],hits[n],drift[n],2)
+            i=random.randrange(len(detectorid_nim3))
+            hits[n],drift[n]=hit_matrix(detectorid_nim3[i],elementid_nim3[i],driftdistance_nim3[i],hits[n],drift[n],3)
+            i=random.randrange(len(detectorid_nim3))
+            hits[n],drift[n]=hit_matrix(detectorid_nim3[i],elementid_nim3[i],driftdistance_nim3[i],hits[n],drift[n],4)
+    del detectorid_nim3, elementid_nim3,driftdistance_nim3
+    return hits, drift
+
+# Function to evaluate the Track Finder neural network.
+@njit(parallel=True)
+def evaluate_finder(testin, testdrift, predictions):
+    # The function constructs inputs for the neural network model based on test data
+    # and predictions, processing each event in parallel for efficiency.
+    reco_in = np.zeros((len(testin), 68, 3))
+    
+    def process_entry(i, dummy, j_offset):
+        j = dummy if dummy <= 5 else dummy + 6
+        if dummy > 11:
+            if predictions[i][12+j_offset] > 0:
+                j = dummy + 6
+            elif predictions[i][12+j_offset] < 0:
+                j = dummy + 12
+
+        if dummy > 17:
+            j = 2 * (dummy - 18) + 30 if predictions[i][2 * (dummy - 18) + 30 + j_offset] > 0 else 2 * (dummy - 18) + 31
+
+        if dummy > 25:
+            j = dummy + 20
+
+        k = abs(predictions[i][dummy + j_offset])
+        sign = k / predictions[i][dummy + j_offset] if k > 0 else 1
+        if(dummy<6):window=15
+        elif(dummy<12):window=5
+        elif(dummy<18):window=5
+        elif(dummy<26):window=1
+        else:window=3
+        k_sum = np.sum(testin[i][j][k - window:k + window-1])
+        if k_sum > 0 and ((dummy < 18) or (dummy > 25)):
+            k_temp = k
+            n = 1
+            while testin[i][j][k - 1] == 0:
+                k_temp += n
+                n = -n * (abs(n) + 1) / abs(n)
+                if 0 <= k_temp < 201:
+                    k = int(k_temp)
+
+        reco_in[i][dummy + j_offset][0] = sign * k
+        reco_in[i][dummy + j_offset][1] = testdrift[i][j][k - 1]
+        if(testin[i][j][k - 1]==1):
+            reco_in[i][dummy + j_offset][2]=1
+
+    for i in prange(predictions.shape[0]):
+        for dummy in prange(34):
+            process_entry(i, dummy, 0)
+        
+        for dummy in prange(34):
+            process_entry(i, dummy, 34)      
+
+    return reco_in
