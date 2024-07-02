@@ -84,43 +84,43 @@ val_input = []
 train_kinematics = []
 val_kinematics = []
 
-while(n_train<1e7):
+event_filter_probability_model = tf.keras.Sequential([tf.keras.models.load_model('Networks/event_filter'), tf.keras.layers.Softmax()])
+
+track_finder_model = tf.keras.models.load_model(model_name)
+
+n_train = 0
+while n_train < 1e7:
     valin, valdrift, valkinematics = generate_hit_matrices(50000, "Val")
     trainin, traindrift, trainkinematics = generate_hit_matrices(500000, "Train")
-    tf.keras.backend.clear_session()
-    model = tf.keras.models.load_model('Networks/event_filter')
-    probability_model = tf.keras.Sequential([model, tf.keras.layers.Softmax()])
-    val_predictions = probability_model.predict(valin,batch_size = 256, verbose=0)
-    tf.keras.backend.clear_session()
-    model = tf.keras.models.load_model('Networks/event_filter')
-    probability_model = tf.keras.Sequential([model, tf.keras.layers.Softmax()])
-    train_predictions = probability_model.predict(trainin,batch_size = 256, verbose=0)
+        
+    # Predict with the preloaded event filter model
+    val_predictions = event_filter_probability_model.predict(valin, batch_size=256, verbose=0)
+    train_predictions = event_filter_probability_model.predict(trainin, batch_size=256, verbose=0)
+        
+    # Filter based on predictions
+    selection_mask = train_predictions[:, 3] > 0.75
+    trainin = trainin[selection_mask]
+    traindrift = traindrift[selection_mask]
+    train_kinematics.append(trainkinematics[selection_mask])
+    selection_mask = val_predictions[:, 3] > 0.75
+    valin = valin[selection_mask]
+    valdrift = valdrift[selection_mask]
+    val_kinematics.append(valkinematics[selection_mask])
 
-    trainin=trainin[train_predictions[:,3]>0.75]
-    traindrift=traindrift[train_predictions[:,3]>0.75]
-    train_kinematics.append(trainkinematics[train_predictions[:,3]>0.75])
+    # Predict with the Track_Finder_All model (preloaded)
+    predictions = (np.round(track_finder_all_model.predict(valin, verbose=0) * max_ele)).astype(int)
+    val_input.append(evaluate_finder(valin, valdrift, predictions))
+    predictions = (np.round(track_finder_all_model.predict(trainin, verbose=0) * max_ele)).astype(int)
+    train_input.append(evaluate_finder(trainin, traindrift, predictions))
 
-    valin=valin[val_predictions[:,3]>0.75]
-    valdrift=valdrift[val_predictions[:,3]>0.75]
-    val_kinematics.append(valkinematics[val_predictions[:,3]>0.75])
+    n_train += len(trainin)
 
-    del val_predictions, train_predictions
-    tf.keras.backend.clear_session()
-    model = tf.keras.models.load_model(model_name)
-    predictions = (np.round(model.predict(valin, verbose=0)*max_ele)).astype(int)
-    val_input.append(evaluate_finder(valin,valdrift,predictions))
-    tf.keras.backend.clear_session()
-    model = tf.keras.models.load_model('Networks/Track_Finder_All')
-    predictions = (np.round(model.predict(trainin, verbose=0)*max_ele)).astype(int)
-    train_input.append(evaluate_finder(trainin,traindrift,predictions))
-    n_train+=len(trainin)
-    del trainin, valin, traindrift, valdrift, predictions
-    
-    np.save(f'Training_Data/{vertex}_Val_In.npy',np.concatenate((val_input)))
-    np.save(f'Training_Data/{vertex}_Val_Out.npy',np.concatenate((val_kinematics)))
-    np.save(f'Training_Data/{vertex}_Train_In.npy',np.concatenate((train_input)))
-    np.save(f'Training_Data/{vertex}_Train_Out.npy',np.concatenate((train_kinematics)))
-    
+    # Save (use a consistent saving strategy to avoid repeated concatenation)
+    np.save(f'Training_Data/{vertex}_Val_In.npy', np.concatenate(val_input))  
+    np.save(f'Training_Data/{vertex}_Val_Out.npy', np.concatenate(val_kinematics))
+    np.save(f'Training_Data/{vertex}_Train_In.npy', np.concatenate(train_input))
+    np.save(f'Training_Data/{vertex}_Train_Out.npy', np.concatenate(train_kinematics))
+
     print(n_train)
 
 
