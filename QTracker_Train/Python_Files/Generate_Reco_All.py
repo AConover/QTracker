@@ -167,9 +167,9 @@ while(total_entries<10000000):
             truth.append(kinematics)
             tracks.append(np.column_stack((all_vtx_track,z_vtx_track,target_vtx_track)))
             
-            np.save('Training_Data/all_tracks_train.npy',np.concatenate(tracks, axis=0))
-            np.save('Training_Data/all_kinematics_train.npy',np.concatenate(all_predictions, axis=0))
-            np.save('Training_Data/all_truth_train.npy',np.concatenate(truth, axis=0))
+            np.save(f'Training_Data/{vertex}_tracks_train.npy',np.concatenate(tracks, axis=0))
+            np.save(f'Training_Data/{vertex}_kinematics_train.npy',np.concatenate(all_predictions, axis=0))
+            np.save(f'Training_Data/{vertex}_truth_train.npy',np.concatenate(truth, axis=0))
             
             print("Reconstructed events for target vertices")
             total_entries += len(hits)
@@ -273,9 +273,9 @@ while(total_entries<1000000):
             truth.append(kinematics)
             tracks.append(np.column_stack((all_vtx_track,z_vtx_track,target_vtx_track)))
             
-            np.save('Training_Data/all_tracks_val.npy',np.concatenate(tracks, axis=0))
-            np.save('Training_Data/all_kinematics_val.npy',np.concatenate(all_predictions, axis=0))
-            np.save('Training_Data/all_truth_val.npy',np.concatenate(truth, axis=0))
+            np.save(f'Training_Data/{vertex}_tracks_val.npy',np.concatenate(tracks, axis=0))
+            np.save(f'Training_Data/{vertex}_kinematics_val.npy',np.concatenate(all_predictions, axis=0))
+            np.save(f'Training_Data/{vertex}_truth_val.npy',np.concatenate(truth, axis=0))
             
             print("Reconstructed events for target vertices")
             total_entries += len(hits)
