@@ -108,9 +108,9 @@ while n_train < 1e7:
     val_kinematics.append(valkinematics[selection_mask])
 
     # Predict with the Track_Finder_All model (preloaded)
-    predictions = (np.round(track_finder_all_model.predict(valin, verbose=0) * max_ele)).astype(int)
+    predictions = (np.round(track_finder_model.predict(valin, verbose=0) * max_ele)).astype(int)
     val_input.append(evaluate_finder(valin, valdrift, predictions))
-    predictions = (np.round(track_finder_all_model.predict(trainin, verbose=0) * max_ele)).astype(int)
+    predictions = (np.round(track_finder_model.predict(trainin, verbose=0) * max_ele)).astype(int)
     train_input.append(evaluate_finder(trainin, traindrift, predictions))
 
     n_train += len(trainin)
