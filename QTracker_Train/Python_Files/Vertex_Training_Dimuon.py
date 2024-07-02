@@ -47,7 +47,7 @@ train_input=np.concatenate((train_reco.reshape((len(train_reco),3,2)),trainin_re
 val_input=np.concatenate((val_reco.reshape((len(val_reco),3,2)),valin_reco),axis=1)
 
 tf.keras.backend.clear_session()
-model=tf.keras.models.load_model('Networks/Vertexing_All')
+model=tf.keras.models.load_model('Networks/Vertexing_{vertex}')
 optimizer = tf.keras.optimizers.Adam(learning_rate_vertex)
 model.compile(optimizer=optimizer,
       loss=tf.keras.losses.mse,
