@@ -84,34 +84,46 @@ val_input = []
 train_kinematics = []
 val_kinematics = []
 
-event_filter_probability_model = tf.keras.Sequential([tf.keras.models.load_model('Networks/event_filter'), tf.keras.layers.Softmax()])
-
-track_finder_model = tf.keras.models.load_model(model_name)
-
 n_train = 0
 while n_train < 1e7:
     valin, valdrift, valkinematics = generate_hit_matrices(50000, "Val")
     trainin, traindrift, trainkinematics = generate_hit_matrices(500000, "Train")
         
-    # Predict with the preloaded event filter model
-    val_predictions = event_filter_probability_model.predict(valin, batch_size=256, verbose=0)
-    train_predictions = event_filter_probability_model.predict(trainin, batch_size=256, verbose=0)
-        
-    # Filter based on predictions
-    selection_mask = train_predictions[:, 3] > 0.75
-    trainin = trainin[selection_mask]
-    traindrift = traindrift[selection_mask]
-    train_kinematics.append(trainkinematics[selection_mask])
-    selection_mask = val_predictions[:, 3] > 0.75
-    valin = valin[selection_mask]
-    valdrift = valdrift[selection_mask]
-    val_kinematics.append(valkinematics[selection_mask])
+    # Event Filtering, Make sure that training data passes event filter and single-muon quality cuts.
+    with tf.keras.backend.clear_session():
+        probability_model = tf.keras.Sequential([tf.keras.models.load_model('Networks/event_filter'), tf.keras.layers.Softmax()])
+        train_predictions = probability_model.predict(trainin, batch_size=225)
+        val_predictions = probability_model.predict(valin, batch_size=225)
+        train_mask = train_predictions[:, 3] > 0.75
+        val_mask = val_predictions[:, 3] > 0.75
+    with tf.keras.backend.clear_session():
+        track_finder_pos = tf.keras.models.load_model('Networks/Track_Finder_Pos')
+        track_finder_neg = tf.keras.models.load_model('Networks/Track_Finder_Neg')
+            
+        pos_predictions = (np.round(track_finder_pos.predict(valin, verbose=0) * max_ele)).astype(int)
+        neg_predictions = (np.round(track_finder_neg.predict(valin, verbose=0) * max_ele)).astype(int)
+        track_val = evaluate_finder(valin, valdrift, np.column_stack((pos_predictions,neg_predictions)))
+        results = calc_mismatches(track_val)
+        train_mask = train_mask & ((results[0::4] < 2) & (results[1::4] < 2) & (results[2::4] < 3) & (results[3::4] < 3)).all(axis=0)
 
-    # Predict with the Track_Finder_All model (preloaded)
-    predictions = (np.round(track_finder_model.predict(valin, verbose=0) * max_ele)).astype(int)
-    val_input.append(evaluate_finder(valin, valdrift, predictions))
-    predictions = (np.round(track_finder_model.predict(trainin, verbose=0) * max_ele)).astype(int)
-    train_input.append(evaluate_finder(trainin, traindrift, predictions))
+        pos_predictions = (np.round(track_finder_pos.predict(trainin, verbose=0) * max_ele)).astype(int)
+        neg_predictions = (np.round(track_finder_neg.predict(trainin, verbose=0) * max_ele)).astype(int)
+        track_train = evaluate_finder(trainin, traindrift, np.column_stack((pos_predictions,neg_predictions)))
+        results = calc_mismatches(track_train)
+        val_mask = val_mask & ((results[0::4] < 2) & (results[1::4] < 2) & (results[2::4] < 3) & (results[3::4] < 3)).all(axis=0)
+    
+    trainin = trainin[train_mask]
+    traindrift = traindrift[train_mask]
+    train_kinematics.append(trainkinematics[train_mask])
+    valin = valin[val_mask]
+    valdrift = valdrift[val_mask]
+    val_kinematics.append(trainkinematics[val_mask])
+    with tf.keras.backend.clear_session():
+        track_finder_model = tf.keras.models.load_model(model_name)
+        predictions = (np.round(track_finder_model.predict(valin, verbose=0) * max_ele)).astype(int)
+        val_input.append(evaluate_finder(valin, valdrift, predictions))
+        predictions = (np.round(track_finder_model.predict(trainin, verbose=0) * max_ele)).astype(int)
+        train_input.append(evaluate_finder(trainin, traindrift, predictions))
 
     n_train += len(trainin)
 
