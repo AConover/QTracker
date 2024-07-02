@@ -11,6 +11,9 @@ from Python_Files/Common_Functions.py import *
 pos_events, pos_drift, pos_kinematics, neg_events, neg_drift, neg_kinematics = read_root_file('Root_Files/Target_Train_QA_v2.root')
 pos_events_val, pos_drift_val, pos_kinematics_val, neg_events_val, neg_drift_val, neg_kinematics_val = read_root_file('Root_Files/Target_Val_QA_v2.root')
 
+del pos_drift, neg_drift, pos_kinematics, neg_kinematics
+del pos_drift_val, neg_drift_val, pos_kinematics_val, neg_kinematics_val
+
 # Clean event data by setting values > 1000 to 0.
 pos_events=clean(pos_events).astype(int)
 neg_events=clean(neg_events).astype(int)
