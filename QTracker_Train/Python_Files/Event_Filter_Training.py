@@ -68,30 +68,23 @@ while n_train < 1e7:
     gc.collect()
 
     # Load and compile the model
-    model = tf.keras.models.load_model('Networks/event_filter')
-    optimizer = tf.keras.optimizers.Adam(learning_rate_filter)
-    model.compile(optimizer=optimizer,
-                  loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-                  metrics=['accuracy'])
+    with tf.keras.models.load_model('event_filter') as model: 
+        optimizer = tf.keras.optimizers.Adam(learning_rate_filter)
+        model.compile(optimizer=optimizer,
+                      loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                      metrics=['accuracy'])
+        # Evaluate the model before training
+        val_loss_before = model.evaluate(valin, valsignals, batch_size=256, verbose=2)[0]
+        # Train the model
+        history = model.fit(trainin, trainsignals,
+                            epochs=1000, batch_size=256, verbose=2, validation_data=(valin, valsignals), callbacks=[callback])
+        # Check if the validation loss improved
+        if min(history.history['val_loss']) < val_loss_before:
+            model.save('Networks/event_filter')
+            learning_rate_filter *= 2
+        learning_rate_filter /= 2
 
-    # Evaluate the model before training
-    val_loss_before = model.evaluate(valin, valsignals, batch_size=256, verbose=2)[0]
-
-    # Train the model
-    history = model.fit(trainin, trainsignals,
-                        epochs=1000, batch_size=256, verbose=2, validation_data=(valin, valsignals), callbacks=[callback])
-
-    # Check if the validation loss improved
-    if min(history.history['val_loss']) < val_loss_before:
-        model.save('Networks/event_filter')
-        learning_rate_filter *= 2
-    learning_rate_filter /= 2
-
-    print('\n')
-
-    # Clear session and force garbage collection to release GPU memory
-    tf.keras.backend.clear_session()
-    del trainsignals, trainin, valin, valsignals, model
+    del trainsignals, trainin, valin, valsignals
     gc.collect()
     print(n_train)
 
