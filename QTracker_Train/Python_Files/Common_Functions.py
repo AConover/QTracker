@@ -172,3 +172,15 @@ def evaluate_finder(testin, testdrift, predictions):
             process_entry(i, dummy, 34)      
 
     return reco_in
+
+# Drift chamber mismatch calculation (function for reusability)
+def calc_mismatches(track):
+    results = []
+    for pos_slice, neg_slice in [(slice(0, 6), slice(34, 40)), (slice(6, 12), slice(40, 46)), (slice(12, 18), slice(46, 52))]:
+        results.extend([
+            np.sum(abs(track[:, pos_slice, ::2, 0] - track[:, pos_slice, 1::2, 0]) > 1, axis=1),
+            np.sum(abs(track[:, neg_slice, ::2, 0] - track[:, neg_slice, 1::2, 0]) > 1, axis=1),
+            np.sum(abs(track[:, pos_slice, :, 2]) == 0, axis=1),
+            np.sum(abs(track[:, neg_slice, :, 2]) == 0, axis=1)
+        ])
+    return np.array(results)
