@@ -90,44 +90,34 @@ while(n_train<1e7):
     valin, valtrack = generate_hit_matrices(75000, "Val")
     print("Generated Validation Data")
     valtrack = valtrack/max_ele
-    
-    tf.keras.backend.clear_session()
-    
-    model = tf.keras.models.load_model('Networks/event_filter')
-    probability_model = tf.keras.Sequential([model, tf.keras.layers.Softmax()])
-    val_predictions = probability_model.predict(valin,batch_size=225)
-    train_predictions = probability_model.predict(trainin,batch_size=225)
-
-
-    trainin=trainin[train_predictions[:,3]>0.75]
-    traintrack=traintrack[train_predictions[:,3]>0.75]
-
-    valin=valin[val_predictions[:,3]>0.75]
-    valtrack=valtrack[val_predictions[:,3]>0.75]
+  
+    # Event Filtering (using a context manager for automatic session clearing)
+    with tf.keras.backend.clear_session():
+        probability_model = tf.keras.Sequential([tf.keras.models.load_model('Networks/event_filter'), tf.keras.layers.Softmax()])
+        train_predictions = probability_model.predict(trainin, batch_size=225)
+        val_predictions = probability_model.predict(valin, batch_size=225)
+        train_mask = train_predictions[:, 3] > 0.75
+        val_mask = val_predictions[:, 3] > 0.75
+        trainin = trainin[train_mask]
+        traintrack = traintrack[train_mask]
+        valin = valin[val_mask]
+        valtrack = valtrack[val_mask]
     
     n_train+=len(trainin)
     
-    del train_predictions, val_predictions
-    del model
-    tf.keras.backend.clear_session()
-    gc.collect()
-    # Specify the optimizer, and compile the model with loss functions for both outputs
-    model = tf.keras.models.load_model(model_name)
-    optimizer = tf.keras.optimizers.Adam(learning_rate_finder)
-    model.compile(optimizer=optimizer,
-              loss=tf.keras.losses.mse,
-              metrics=tf.keras.metrics.RootMeanSquaredError())
-
-    val_loss_before=model.evaluate(valin,valtrack,batch_size=100,verbose=2)[0]
-    print(val_loss_before)
-    history = model.fit(trainin, traintrack,
-                    epochs=1000, batch_size=100, verbose=2, validation_data=(valin,valtrack),callbacks=[callback])
-    if(min(history.history['val_loss'])<val_loss_before):
-        model.save(model_name)
-        learning_rate_finder=learning_rate_finder*2
-    learning_rate_finder=learning_rate_finder/2
-    tf.keras.backend.clear_session()
-    del trainin, valin, traintrack, valtrack,model
+# Model Training (using a context manager for automatic model deletion)
+    with tf.keras.models.load_model(model_name) as model: 
+        optimizer = tf.keras.optimizers.Adam(learning_rate_finder)
+        model.compile(optimizer=optimizer, loss='mse', metrics=['RootMeanSquaredError'])
+        val_loss_before = model.evaluate(valin, valtrack, batch_size=100, verbose=2)[0]
+        print(val_loss_before)
+        history = model.fit(trainin, traintrack, epochs=1000,  batch_size=100, 
+            verbose=2, validation_data=(valin, valtrack), callbacks=[callback])
+        if min(history.history['val_loss']) < val_loss_before:
+            model.save(model_name)  # Save only if improved
+            learning_rate_finder *= 2  
+        else:
+            learning_rate_finder /= 2
     gc.collect()  # Force garbage collection to release GPU memory
     print(n_train)
 
