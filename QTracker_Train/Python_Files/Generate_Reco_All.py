@@ -9,29 +9,12 @@ from Python_Files/Common_Functions import *
 
 if len(sys.argv) != 2:
         print("Usage: python script.py <Vertex Distribution>")
-        print("Currently supports All_Vertex, Beamline, Target, and Dump")
+        print("Currently supports All, Z, Target, and Dump")
         exit(1)
 
-if sys.argv[1] == "All_Vertex":
-    root_file_train = "Root_Files/All_Vertex_Train_QA_v2.root"
-    root_file_val = "Root_Files/All_Vertex_Val_QA_v2.root"
-    model_name = "Networks/Track_Finder_All"
-elif sys.argv[1] == "Beamline":
-    root_file_train = "Root_Files/Z_Train_QA_v2.root"
-    root_file_val = "Root_Files/Z_Val_QA_v2.root"
-    model_name = "Networks/Track_Finder_Z"
-elif sys.argv[1] == "Target":
-    root_file_train = "Root_Files/Target_Train_QA_v2.root"
-    root_file_val = "Root_Files/Target_Val_QA_v2.root"
-    model_name = "Networks/Track_Finder_Target"
-elif sys.argv[1] == "Dump":
-    root_file_train = "Root_Files/Dump_Train_QA_v2.root"
-    root_file_val = "Root_Files/Dump_Val_QA_v2.root"
-    model_name = "Networks/Track_Finder_Dump"
-else:
-    print("Unrecognized option. Quitting...")
-    exit(1)
-
+vertex = sys.argv[1]
+root_file_train = f"Root_Files/{vertex}_Train_QA_v2.root"
+root_file_val = f"Root_Files/{vertex}_Val_QA_v2.root"
 
 pos_events, pos_drift, pos_kinematics, neg_events, neg_drift, neg_kinematics = read_root_file(root_file_train)
 pos_events_val, pos_drift_val, pos_kinematics_val, neg_events_val, neg_drift_val, neg_kinematics_val = read_root_file(root_file_val)
@@ -122,7 +105,6 @@ while(total_entries<10000000):
             predictions = (np.round(model.predict(hits,verbose=0)*max_ele)).astype(int)
             all_vtx_track = evaluate_finder(hits,drift,predictions)
             print("Found Tracks")
-
 
             tf.keras.backend.clear_session()
             
