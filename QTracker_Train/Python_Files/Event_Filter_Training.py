@@ -7,6 +7,34 @@ import tensorflow as tf
 import gc
 from Python_Files/Common_Functions.py import *
 
+@njit(parallel=True)
+def track_injection(hits,pos_e,neg_e):
+    # Inject tracks into the hit matrices
+    category=np.zeros((len(hits)))
+    for z in prange(len(hits)):
+        m = random.randrange(0,2)
+        j=random.randrange(len(pos_e))
+        for k in range(54):
+            if(pos_e[j][k]>0):
+                if(random.random()<m*0.94) or ((k>29)&(k<45)):
+                    hits[z][k][int(pos_e[j][k]-1)]=1
+            if(neg_e[j][k]>0):
+                if(random.random()<m*0.94) or ((k>29)&(k<45)):
+                    hits[z][k][int(neg_e[j][k]-1)]=1
+        category[z]=m        
+
+    return hits,category
+
+def generate_hit_matrices(n_events, tvt):
+    #Create the realistic background for events
+    hits, _ = build_background(n_events)
+    #Inject the reconstructable tracks
+    if(tvt=="Train"):
+        hits,category=track_injection(hits,pos_events,neg_events)    
+    if(tvt=="Val"):
+        hits,category=track_injection(hits,pos_events_val,neg_events_val)    
+    return hits.astype(bool), category.astype(int)
+
 # Read training and validation data from ROOT files
 pos_events, pos_drift, pos_kinematics, neg_events, neg_drift, neg_kinematics = read_root_file('Root_Files/Target_Train_QA_v2.root')
 pos_events_val, pos_drift_val, pos_kinematics_val, neg_events_val, neg_drift_val, neg_kinematics_val = read_root_file('Root_Files/Target_Val_QA_v2.root')
@@ -19,35 +47,6 @@ pos_events=clean(pos_events).astype(int)
 neg_events=clean(neg_events).astype(int)
 pos_events_val=clean(pos_events_val).astype(int)
 neg_events_val=clean(neg_events_val).astype(int)
-
-@njit(parallel=True)
-def track_injection(hits,pos_e,neg_e):
-    # Inject tracks into the hit matrices
-    category=np.zeros((len(hits)))
-    track=np.zeros((len(hits),108))
-    for z in prange(len(hits)):
-        m = random.randrange(0,2)
-        j=random.randrange(len(pos_e))
-        for k in range(54):
-            if(pos_e[j][k]>0):
-                if(random.random()<m*0.94) or ((k>29)&(k<45)):
-                    hits[z][k][int(pos_e[j][k]-1)]=1
-                track[z][k]=pos_e[j][k]
-            if(neg_e[j][k]>0):
-                if(random.random()<m*0.94) or ((k>29)&(k<45)):
-                    hits[z][k][int(neg_e[j][k]-1)]=1
-        category[z]=m        
-
-    return hits,category
-
-def generate_hit_matrices(n_events, tvt):
-    hits, _ = build_background(n_events)
-    #Place the full tracks that are reconstructable
-    if(tvt=="Train"):
-        hits,category=track_injection(hits,pos_events,neg_events)    
-    if(tvt=="Val"):
-        hits,category=track_injection(hits,pos_events_val,neg_events_val)    
-    return hits.astype(bool), category.astype(int)
 
 # Set learning rate and callback for early stopping
 learning_rate_filter = 1e-6
