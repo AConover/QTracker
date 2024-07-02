@@ -104,8 +104,8 @@ while(n_train<1e7):
         valtrack = valtrack[val_mask]
     
     n_train+=len(trainin)
-    
-# Model Training (using a context manager for automatic model deletion)
+        
+    # Model Training (using a context manager for automatic model deletion)
     with tf.keras.models.load_model(model_name) as model: 
         optimizer = tf.keras.optimizers.Adam(learning_rate_finder)
         model.compile(optimizer=optimizer, loss='mse', metrics=['RootMeanSquaredError'])
