@@ -6,7 +6,7 @@ import random
 import tensorflow as tf
 import gc
 import sys
-from Python_Files/Common_Functions.py import *
+from Python_Files/Common_Functions import *
 
 if len(sys.argv) != 2:
         print("Usage: python script.py <Vertex Distribution>")
