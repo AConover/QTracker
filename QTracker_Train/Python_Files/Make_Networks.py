@@ -19,7 +19,7 @@ model = tf.keras.Sequential([
     tf.keras.layers.Dropout(0.1),
     tf.keras.layers.Dense(4096, activation='relu'),
     tf.keras.layers.Dropout(0.1),
-    tf.keras.layers.Dense(6)
+    tf.keras.layers.Dense(2)
 ])
 
 # Save the model
