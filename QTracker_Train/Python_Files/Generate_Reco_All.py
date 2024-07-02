@@ -82,7 +82,7 @@ all_predictions = []
 tracks = []
 truth = []
 total_entries = 0
-
+#Generate training data
 while(total_entries<10000000):
     try:
         hits, drift, kinematics = generate_e906(200000,"Train")
@@ -187,7 +187,7 @@ truth = []
 total_entries = 0
 
 
-
+#Generate validation data
 while(total_entries<1000000):
     try:
         hits, drift, kinematics = generate_e906(200000,"Val")
