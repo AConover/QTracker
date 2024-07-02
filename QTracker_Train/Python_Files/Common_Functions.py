@@ -1,5 +1,6 @@
 import numpy
 import uproot
+from numba import njit, prange
 
 def read_root_file(root_file):
     targettree = uproot.open(root_file + ':QA_ana')
