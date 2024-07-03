@@ -6,7 +6,7 @@ from numba import njit, prange
 import random
 import tensorflow as tf
 import gc
-from Python_Files/Common_Functions import *
+from Common_Functions import *
 
 if len(sys.argv) != 2:
         print("Usage: python script.py <Vertex Distribution>")
