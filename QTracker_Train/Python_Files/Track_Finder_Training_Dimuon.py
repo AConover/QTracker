@@ -6,7 +6,7 @@ import random
 import tensorflow as tf
 import gc
 import sys
-from Common_Functions import *
+from Python_Files/Common_Functions import *
 
 if len(sys.argv) != 2:
         print("Usage: python script.py <Vertex Distribution>")
@@ -70,13 +70,6 @@ def generate_hit_matrices(n_events, tvt):
         hits,track=track_injection(hits,pos_events_val,neg_events_val)    
     return hits.astype(bool), track.astype(int)
     
-max_ele = [200, 200, 168, 168, 200, 200, 128, 128,  112,  112, 128, 128, 134, 134, 
-           112, 112, 134, 134,  20,  20,  16,  16,  16,  16,  16,  16,
-        72,  72,  72,  72,  72,  72,  72,  72, 200, 200, 168, 168, 200, 200,
-        128, 128,  112,  112, 128, 128, 134, 134, 112, 112, 134, 134,
-        20,  20,  16,  16,  16,  16,  16,  16,  72,  72,  72,  72,  72,
-        72,  72,  72]
-
 learning_rate_finder=1e-6
 callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
 n_train=0
@@ -91,49 +84,58 @@ while(n_train<1e7):
     print("Generated Validation Data")
     valtrack = valtrack/max_ele
   
-    # Event Filtering
-    with tf.keras.backend.clear_session():
-        probability_model = tf.keras.Sequential([tf.keras.models.load_model('Networks/event_filter'), tf.keras.layers.Softmax()])
-        train_predictions = probability_model.predict(trainin, batch_size=225)
-        val_predictions = probability_model.predict(valin, batch_size=225)
-        train_mask = train_predictions[:, 3] > 0.75
-        val_mask = val_predictions[:, 3] > 0.75
-    with tf.keras.backend.clear_session():
-        track_finder_pos = tf.keras.models.load_model('Networks/Track_Finder_Pos')
-        track_finder_neg = tf.keras.models.load_model('Networks/Track_Finder_Neg')
-        pos_predictions = (np.round(track_finder_pos.predict(valin, verbose=0) * max_ele)).astype(int)
-        neg_predictions = (np.round(track_finder_neg.predict(valin, verbose=0) * max_ele)).astype(int)
-        track_val = evaluate_finder(valin, valdrift, np.column_stack((pos_predictions,neg_predictions)))
-        results = calc_mismatches(track_val)
-        train_mask = train_mask & ((results[0::4] < 2) & (results[1::4] < 2) & (results[2::4] < 3) & (results[3::4] < 3)).all(axis=0)
+    # Clear previous session and load probability model
+    tf.keras.backend.clear_session()
+    probability_model = tf.keras.Sequential([tf.keras.models.load_model('Networks/event_filter'), tf.keras.layers.Softmax()])
+    train_predictions = probability_model.predict(trainin, batch_size=225)
+    val_predictions = probability_model.predict(valin, batch_size=225)
+    train_mask = train_predictions[:, 3] > 0.75
+    val_mask = val_predictions[:, 3] > 0.75
+
+    # Clear session and load track finder models then predict with track finders
+    tf.keras.backend.clear_session()
+    track_finder_pos = tf.keras.models.load_model('Networks/Track_Finder_Pos')
+    pos_predictions_val = (np.round(track_finder_pos.predict(valin, verbose=0) * max_ele)).astype(int)
+    pos_predictions_train = (np.round(track_finder_pos.predict(trainin, verbose=0) * max_ele)).astype(int)
+    tf.keras.backend.clear_session()
+    track_finder_neg = tf.keras.models.load_model('Networks/Track_Finder_Neg')
+    neg_predictions_val = (np.round(track_finder_neg.predict(valin, verbose=0) * max_ele)).astype(int)
+    neg_predictions_train = (np.round(track_finder_neg.predict(trainin, verbose=0) * max_ele)).astype(int)
     
-        pos_predictions = (np.round(track_finder_pos.predict(trainin, verbose=0) * max_ele)).astype(int)
-        neg_predictions = (np.round(track_finder_neg.predict(trainin, verbose=0) * max_ele)).astype(int)
-        track_train = evaluate_finder(trainin, traindrift, np.column_stack((pos_predictions,neg_predictions)))
-        results = calc_mismatches(track_train)
-        val_mask = val_mask & ((results[0::4] < 2) & (results[1::4] < 2) & (results[2::4] < 3) & (results[3::4] < 3)).all(axis=0)
+    track_val = evaluate_finder(valin, valdrift, np.column_stack((pos_predictions_val, neg_predictions_val)))
+    results_val = calc_mismatches(track_val)
+    val_mask &= ((results_val[0::4] < 2) & (results_val[1::4] < 2) & (results_val[2::4] < 3) & (results_val[3::4] < 3)).all(axis=0)
     
+    track_train = evaluate_finder(trainin, traindrift, np.column_stack((pos_predictions_train, neg_predictions_train)))
+    results_train = calc_mismatches(track_train)
+    train_mask &= ((results_train[0::4] < 2) & (results_train[1::4] < 2) & (results_train[2::4] < 3) & (results_train[3::4] < 3)).all(axis=0)
+
+    # Apply masks
     trainin = trainin[train_mask]
     traintrack = traintrack[train_mask]
     valin = valin[val_mask]
     valtrack = valtrack[val_mask]
-    
-    n_train+=len(trainin)
+
+    n_train += len(trainin)
         
     # Model Training
-    with tf.keras.models.load_model(model_name) as model: 
-        optimizer = tf.keras.optimizers.Adam(learning_rate_finder)
-        model.compile(optimizer=optimizer, loss='mse', metrics=['RootMeanSquaredError'])
-        val_loss_before = model.evaluate(valin, valtrack, batch_size=100, verbose=2)[0]
-        print(val_loss_before)
-        history = model.fit(trainin, traintrack, epochs=1000,  batch_size=100, 
-            verbose=2, validation_data=(valin, valtrack), callbacks=[callback])
-        if min(history.history['val_loss']) < val_loss_before:
-            model.save(model_name)  # Save only if improved
-            learning_rate_finder *= 2  
-        else:
-            learning_rate_finder /= 2
+    tf.keras.backend.clear_session()
+    model = tf.keras.models.load_model(model_name)
+    optimizer = tf.keras.optimizers.Adam(learning_rate_finder)
+    model.compile(optimizer=optimizer, loss='mse', metrics=['RootMeanSquaredError'])
+    val_loss_before = model.evaluate(valin, valtrack, batch_size=100, verbose=2)[0]
+    print(val_loss_before)
+    history = model.fit(trainin, traintrack, epochs=1000, batch_size=100, 
+                        verbose=2, validation_data=(valin, valtrack), callbacks=[callback])
+    if min(history.history['val_loss']) < val_loss_before:
+        model.save(model_name)  # Save only if improved
+        learning_rate_finder *= 2
+    else:
+        learning_rate_finder /= 2
+
+    del model  # Delete the model to free up memory
     gc.collect()  # Force garbage collection to release GPU memory
     print(n_train)
+
 
 

@@ -6,7 +6,7 @@ from numba import njit, prange
 import random
 import tensorflow as tf
 import gc
-from Common_Functions import *
+from Python_Files/Common_Functions import *
 
 if len(sys.argv) != 2:
         print("Usage: python script.py <Vertex Distribution>")
@@ -58,24 +58,6 @@ def generate_e906(n_events, tvt):
     if(tvt=="Val"):
         hits,drift,kinematics=track_injection(hits,drift,pos_events_val,neg_events_val,pos_drift_val,neg_drift_val,pos_kinematics_val,neg_kinematics_val)    
     return hits.astype(bool), drift, kinematics
-    
-
-kin_means = np.array([2,0,35,-2,0,35])
-kin_stds = np.array([0.6,1.2,10,0.6,1.2,10])
-
-vertex_means=np.array([0,0,-300])
-vertex_stds=np.array([10,10,300])
-
-means = np.concatenate((kin_means,vertex_means))
-stds = np.concatenate((kin_stds,vertex_stds))
-
-
-max_ele = [200, 200, 168, 168, 200, 200, 128, 128,  112,  112, 128, 128, 134, 134, 
-           112, 112, 134, 134,  20,  20,  16,  16,  16,  16,  16,  16,
-        72,  72,  72,  72,  72,  72,  72,  72, 200, 200, 168, 168, 200, 200,
-        128, 128,  112,  112, 128, 128, 134, 134, 112, 112, 134, 134,
-        20,  20,  16,  16,  16,  16,  16,  16,  72,  72,  72,  72,  72,
-        72,  72,  72]
 
 # Initialize lists to store the data
 dimuon_probability=[]

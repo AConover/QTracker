@@ -56,35 +56,40 @@ n_train = 0
 print("Before while loop:", n_train)
 while n_train < 1e7:
     # Generate training and validation data
-    trainin, trainsignals = generate_hit_matrices(500000, "Train")
+    trainin, trainsignals = generate_hit_matrices(2000000, "Train")
     n_train += len(trainin)
     print("Generated Training Data")
-    valin, valsignals = generate_hit_matrices(50000, "Val")
+    valin, valsignals = generate_hit_matrices(200000, "Val")
     print("Generated Validation Data")
     
     # Clear session and reset TensorFlow graph
     tf.keras.backend.clear_session()
-    tf.compat.v1.reset_default_graph()
     gc.collect()
 
     # Load and compile the model
-    with tf.keras.models.load_model('event_filter') as model: 
-        optimizer = tf.keras.optimizers.Adam(learning_rate_filter)
-        model.compile(optimizer=optimizer,
-                      loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-                      metrics=['accuracy'])
-        # Evaluate the model before training
-        val_loss_before = model.evaluate(valin, valsignals, batch_size=256, verbose=2)[0]
-        # Train the model
-        history = model.fit(trainin, trainsignals,
-                            epochs=1000, batch_size=256, verbose=2, validation_data=(valin, valsignals), callbacks=[callback])
-        # Check if the validation loss improved
-        if min(history.history['val_loss']) < val_loss_before:
-            model.save('Networks/event_filter')
-            learning_rate_filter *= 2
+    model = tf.keras.models.load_model('Networks/event_filter')
+    optimizer = tf.keras.optimizers.Adam(learning_rate_filter)
+    model.compile(optimizer=optimizer,
+                  loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                  metrics=['accuracy'])
+    
+    # Evaluate the model before training
+    val_loss_before = model.evaluate(valin, valsignals, batch_size=256, verbose=2)[0]
+    
+    # Train the model
+    history = model.fit(trainin, trainsignals,
+                        epochs=1000, batch_size=256, verbose=2, 
+                        validation_data=(valin, valsignals), callbacks=[callback])
+    
+    # Check if the validation loss improved
+    if min(history.history['val_loss']) < val_loss_before:
+        model.save('Networks/event_filter')
+        learning_rate_filter *= 2
+    else:
         learning_rate_filter /= 2
 
-    del trainsignals, trainin, valin, valsignals
+    del trainsignals, trainin, valin, valsignals, model
     gc.collect()
     print(n_train)
+
 
