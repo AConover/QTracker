@@ -6,7 +6,7 @@ import random
 import tensorflow as tf
 import gc
 import sys
-from Python_Files/Common_Functions import *
+from Common_Functions import *
 
 root_file_train = "Root_Files/Z_Train_QA_v2.root"
 root_file_val = "Root_Files/Z_Val_QA_v2.root"
