@@ -5,7 +5,7 @@ from numba import njit, prange
 import random
 import tensorflow as tf
 import gc
-from \Common_Functions import *
+from Common_Functions import *
 
 @njit(parallel=True)
 def track_injection(hits,pos_e,neg_e):
