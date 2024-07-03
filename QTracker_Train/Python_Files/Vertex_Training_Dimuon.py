@@ -10,8 +10,6 @@ if len(sys.argv) != 2:
 vertex = sys.argv[1]
 
 #Define the means and standard deviations for output normalization
-kin_means = np.array([2,0,35,-2,0,35])
-kin_stds = np.array([0.6,1.2,10,0.6,1.2,10])
 vertex_means=np.array([0,0,-300])
 vertex_stds=np.array([10,10,300])
 
