@@ -4,9 +4,9 @@
 #SBATCH --gres=gpu:4  
 #SBATCH --cpus-per-task=4
 #SBATCH -t 72:00:00
-#SBATCH -J QTracking_TFZ
-#SBATCH -o Slurm_Files/QTracking_TFZ.out
-#SBATCH -e Slurm_Files/QTracking_TFZ.err
+#SBATCH -J QTracking_TFD
+#SBATCH -o Slurm_Files/QTracking_TFD.out
+#SBATCH -e Slurm_Files/QTracking_TFD.err
 #SBATCH --mem=128000
 
 module purge
