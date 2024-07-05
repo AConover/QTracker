@@ -72,12 +72,27 @@ def generate_hit_matrices(n_events, tvt):
         hits,track=track_injection(hits,pos_events_val,neg_events_val)    
     return hits.astype(bool), track.astype(int)
 
-learning_rate_finder=1e-6
+learning_rate_finder=1e-5
 callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
 n_train=0
 
+# Detect the number of GPUs available
+gpus = tf.config.experimental.list_physical_devices('GPU')
+num_gpus = len(gpus)
+print(f"Number of GPUs available: {num_gpus}")
+
+# Set up strategy for distributed training
+if num_gpus > 1:
+    strategy = tf.distribute.MirroredStrategy()
+else:
+    strategy = tf.distribute.get_strategy()
+
+# Adjust batch size for the number of GPUs
+batch_size_ef = 256 * num_gpus
+batch_size_tf = 64 * num_gpus
+
 print("Before while loop:", n_train)
-while(n_train<1e7):
+while(n_train<2e6):
     trainin, traintrack = generate_hit_matrices(750000, "Train")
     print("Generated Training Data")
     traintrack = traintrack/max_ele
@@ -96,14 +111,12 @@ while(n_train<1e7):
     # Clear previous session
     tf.keras.backend.clear_session()
     
-    # Load the probability model
-    probability_model = tf.keras.Sequential([tf.keras.models.load_model('Networks/event_filter'), tf.keras.layers.Softmax()])
-    
-    # Predict and apply masks
-    train_predictions = probability_model.predict(trainin, batch_size=225)
-    val_predictions = probability_model.predict(valin, batch_size=225)
-    train_mask = train_predictions[:, 3] > 0.75
-    val_mask = val_predictions[:, 3] > 0.75
+    with strategy.scope():
+        probability_model = tf.keras.Sequential([tf.keras.models.load_model('Networks/event_filter'), tf.keras.layers.Softmax()])
+        train_predictions = probability_model.predict(trainin, batch_size=batch_size_ef, verbose=0)
+        val_predictions = probability_model.predict(valin, batch_size=batch_size_ef, verbose=0)
+    train_mask = train_predictions[:, 1] > 0.75
+    val_mask = val_predictions[:, 1] > 0.75
     trainin = trainin[train_mask]
     traintrack = traintrack[train_mask]
     valin = valin[val_mask]
@@ -113,33 +126,20 @@ while(n_train<1e7):
     
     # Model Training
     tf.keras.backend.clear_session()
-    model = tf.keras.models.load_model(model_name) 
-    optimizer = tf.keras.optimizers.Adam(learning_rate_finder)
-    model.compile(optimizer=optimizer, loss='mse', metrics=['RootMeanSquaredError'])
-    val_loss_before = model.evaluate(valin, valtrack, batch_size=100, verbose=2)[0]
-    print(val_loss_before)
-    history = model.fit(trainin, traintrack, epochs=1000,  batch_size=100, 
-        verbose=2, validation_data=(valin, valtrack), callbacks=[callback])
-    if min(history.history['val_loss']) < val_loss_before:
-        model.save(model_name)  # Save only if improved
-        learning_rate_finder *= 2  
-    else:
-        learning_rate_finder /= 2
+    with strategy.scope():
+        model = tf.keras.models.load_model(model_name) 
+        optimizer = tf.keras.optimizers.Adam(learning_rate_finder)
+        model.compile(optimizer=optimizer, loss='mse', metrics=['RootMeanSquaredError'])
+        val_loss_before = model.evaluate(valin, valtrack, batch_size=batch_size_tf, verbose=2)[0]
+        print(val_loss_before)
+        history = model.fit(trainin, traintrack, epochs=1000,  batch_size=batch_size_tf, 
+            verbose=2, validation_data=(valin, valtrack), callbacks=[callback])
+        if min(history.history['val_loss']) < val_loss_before:
+            model.save(model_name)  # Save only if improved
+            learning_rate_finder *= 2  
+        else:
+            learning_rate_finder /= 2
 
     del model  # Delete the model to free up memory
     gc.collect()  # Force garbage collection to release GPU memory
     print(n_train)
-
-    
-#Here we take this trained model, replace the final layer to make it compatible with dimuons,
-#and save to give those networks a head start on training.
-model = tf.keras.models.load_model(model_name)
-#Change the output layer to shape 68 to make it work for dimuon track finding.
-model.pop()  # Remove the final layer
-model.add(tf.keras.layers.Dense(68, activation='linear')) 
-
-#Save the dimuon track finders.
-model.save('Networks/Track_Finder_All')
-model.save('Networks/Track_Finder_Z')
-model.save('Networks/Track_Finder_Target')
-model.save('Networks/Track_Finder_Dump')

@@ -3,41 +3,41 @@ import tensorflow as tf
 import os
 
 # Load data
-target_reco_train = np.load('Training_Data/Target_kinematics_train.npy')
-target_tracks_train = np.load('Training_Data/Target_tracks_train.npy')
+target_reco_train = np.load('Training_Data/Target_Reco_Train.npy')
+target_tracks_train = np.load('Training_Data/Target_Tracks_Train.npy')
 filt = np.max(abs(target_reco_train),axis=1)<1000
 target_reco_train = target_reco_train[filt]
 target_tracks_train = target_tracks_train[filt]
-target_train_data = np.column_stack((target_reco_train,target_tracks_train.reshape((len(target_tracks_train),(204*2)))))
+target_train_data = np.column_stack((target_reco_train,target_tracks_train.reshape((len(target_tracks_train),(68*2*5)))))
 del target_reco_train, target_tracks_train
 target_train_labels = np.ones(len(target_train_data))
 
-target_reco_val = np.load('Training_Data/Target_kinematics_val.npy')
-target_tracks_val = np.load('Training_Data/Target_tracks_val.npy')
+target_reco_val = np.load('Training_Data/Target_Reco_Val.npy')
+target_tracks_val = np.load('Training_Data/Target_Tracks_Val.npy')
 filt = np.max(abs(target_reco_val),axis=1)<1000
 target_reco_val = target_reco_val[filt]
 target_tracks_val = target_tracks_val[filt]
-target_val_data = np.column_stack((target_reco_val,target_tracks_val.reshape((len(target_tracks_val),(204*2)))))
+target_val_data = np.column_stack((target_reco_val,target_tracks_val.reshape((len(target_tracks_val),(68*2*5)))))
 del target_reco_val, target_tracks_val
 target_val_labels = np.ones(len(target_val_data))
 
 
 # Load data
-dump_reco_train = np.load('Training_Data/Dump_kinematics_train.npy')
-dump_tracks_train = np.load('Training_Data/Dump_tracks_train.npy')
+dump_reco_train = np.load('Training_Data/Dump_Reco_Train.npy')
+dump_tracks_train = np.load('Training_Data/Dump_Tracks_Train.npy')
 filt = np.max(abs(dump_reco_train),axis=1)<1000
 dump_reco_train = dump_reco_train[filt]
 dump_tracks_train = dump_tracks_train[filt]
-dump_train_data = np.column_stack((dump_reco_train,dump_tracks_train.reshape((len(dump_tracks_train),(204*2)))))
+dump_train_data = np.column_stack((dump_reco_train,dump_tracks_train.reshape((len(dump_tracks_train),(68*2*5)))))
 del dump_reco_train, dump_tracks_train
 dump_train_labels = np.zeros(len(dump_train_data))
 
-dump_reco_val = np.load('Training_Data/Dump_kinematics_val.npy')
-dump_tracks_val = np.load('Training_Data/Dump_tracks_val.npy')
+dump_reco_val = np.load('Training_Data/Dump_Reco_Val.npy')
+dump_tracks_val = np.load('Training_Data/Dump_Tracks_Val.npy')
 filt = np.max(abs(dump_reco_val),axis=1)<1000
 dump_reco_val = dump_reco_val[filt]
 dump_tracks_val = dump_tracks_val[filt]
-dump_val_data = np.column_stack((dump_reco_val,dump_tracks_val.reshape((len(dump_tracks_val),(204*2)))))
+dump_val_data = np.column_stack((dump_reco_val,dump_tracks_val.reshape((len(dump_tracks_val),(68*2*5)))))
 del dump_reco_val, dump_tracks_val
 dump_val_labels = np.zeros(len(dump_val_data))
 

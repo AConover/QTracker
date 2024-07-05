@@ -53,40 +53,54 @@ learning_rate_filter = 1e-6
 callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
 n_train = 0
 
+# Detect the number of GPUs available
+gpus = tf.config.experimental.list_physical_devices('GPU')
+num_gpus = len(gpus)
+print(f"Number of GPUs available: {num_gpus}")
+
+# Set up strategy for distributed training
+if num_gpus > 1:
+    strategy = tf.distribute.MirroredStrategy()
+else:
+    strategy = tf.distribute.get_strategy()
+    
+# Adjust batch size for the number of GPUs
+batch_size_adjusted = 256 * num_gpus
+
 print("Before while loop:", n_train)
 while n_train < 1e7:
     # Generate training and validation data
-    trainin, trainsignals = generate_hit_matrices(2000000, "Train")
+    trainin, trainsignals = generate_hit_matrices(1000000, "Train")
     n_train += len(trainin)
     print("Generated Training Data")
-    valin, valsignals = generate_hit_matrices(200000, "Val")
+    valin, valsignals = generate_hit_matrices(100000, "Val")
     print("Generated Validation Data")
     
     # Clear session and reset TensorFlow graph
     tf.keras.backend.clear_session()
     gc.collect()
+    with strategy.scope():
+        # Load and compile the model
+        model = tf.keras.models.load_model('Networks/event_filter')
+        optimizer = tf.keras.optimizers.Adam(learning_rate_filter)
+        model.compile(optimizer=optimizer,
+                      loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                      metrics=['accuracy'])
 
-    # Load and compile the model
-    model = tf.keras.models.load_model('Networks/event_filter')
-    optimizer = tf.keras.optimizers.Adam(learning_rate_filter)
-    model.compile(optimizer=optimizer,
-                  loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-                  metrics=['accuracy'])
-    
-    # Evaluate the model before training
-    val_loss_before = model.evaluate(valin, valsignals, batch_size=256, verbose=2)[0]
-    
-    # Train the model
-    history = model.fit(trainin, trainsignals,
-                        epochs=1000, batch_size=256, verbose=2, 
-                        validation_data=(valin, valsignals), callbacks=[callback])
-    
-    # Check if the validation loss improved
-    if min(history.history['val_loss']) < val_loss_before:
-        model.save('Networks/event_filter')
-        learning_rate_filter *= 2
-    else:
-        learning_rate_filter /= 2
+        # Evaluate the model before training
+        val_loss_before = model.evaluate(valin, valsignals, batch_size=batch_size_adjusted, verbose=2)[0]
+
+        # Train the model
+        history = model.fit(trainin, trainsignals,
+                            epochs=1000, batch_size=batch_size_adjusted, verbose=2, 
+                            validation_data=(valin, valsignals), callbacks=[callback])
+
+        # Check if the validation loss improved
+        if min(history.history['val_loss']) < val_loss_before:
+            model.save('Networks/event_filter')
+            learning_rate_filter *= 2
+        else:
+            learning_rate_filter /= 2
 
     del trainsignals, trainin, valin, valsignals, model
     gc.collect()

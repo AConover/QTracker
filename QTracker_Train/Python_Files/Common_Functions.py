@@ -427,3 +427,4 @@ def calc_mismatches(track):
             np.sum(abs(track[:, neg_slice, :, 2]) == 0, axis=1)
         ])
     return np.array(results)
+        

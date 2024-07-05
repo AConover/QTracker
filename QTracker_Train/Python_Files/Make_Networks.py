@@ -124,7 +124,8 @@ model.save('Networks/Vertexing_Z')
 
 # Define the target-dump filter network.
 model = tf.keras.Sequential([
-    tf.keras.layers.Input(shape=(432,)),
+    tf.keras.layers.Input(shape=(757,)),
+    tf.keras.layers.Dense(2048, activation='relu'),
     tf.keras.layers.Dense(1024, activation='relu'),
     tf.keras.layers.Dense(512, activation='relu'),
     tf.keras.layers.Dense(256, activation='relu'),
@@ -137,10 +138,3 @@ model = tf.keras.Sequential([
 
 #Save the model for training.
 model.save('Networks/target_dump_filter')
-
-
-
-
-
-
-

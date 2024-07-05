@@ -37,14 +37,29 @@ valkin = valkinematics[:,:6]
 trainkin = (trainkin-kin_means)/kin_stds
 valkin = (valkin-kin_means)/kin_stds
 
+# Detect the number of GPUs available
+gpus = tf.config.experimental.list_physical_devices('GPU')
+num_gpus = len(gpus)
+print(f"Number of GPUs available: {num_gpus}")
+
+# Set up strategy for distributed training
+if num_gpus > 1:
+    strategy = tf.distribute.MirroredStrategy()
+else:
+    strategy = tf.distribute.get_strategy()
+
+# Adjust batch size for the number of GPUs
+batch_size_training = 1024 * num_gpus 
+
 tf.keras.backend.clear_session()
-model=tf.keras.models.load_model(f'Networks/Reconstruction_{vertex}')
-optimizer = tf.keras.optimizers.Adam(learning_rate_reco)
-model.compile(optimizer=optimizer,
-      loss=tf.keras.losses.mse,
-      metrics=tf.keras.metrics.RootMeanSquaredError())
-val_loss_before=model.evaluate(valin_reco,valkin,batch_size=100,verbose=2)[0]
-print(val_loss_before)
-history = model.fit(trainin_reco, trainkin,
-            epochs=10000, batch_size=1024, verbose=2, validation_data=(valin_reco,valkin),callbacks=[callback])
-model.save(f'Networks/Reconstruction_{vertex}')
+with strategy.scope():
+    model=tf.keras.models.load_model(f'Networks/Reconstruction_{vertex}')
+    optimizer = tf.keras.optimizers.Adam(learning_rate_reco)
+    model.compile(optimizer=optimizer,
+          loss=tf.keras.losses.mse,
+          metrics=tf.keras.metrics.RootMeanSquaredError())
+    val_loss_before=model.evaluate(valin_reco,valkin,batch_size=100,verbose=2)[0]
+    print(val_loss_before)
+    history = model.fit(trainin_reco, trainkin,
+                epochs=10000, batch_size=1024, verbose=2, validation_data=(valin_reco,valkin),callbacks=[callback])
+    model.save(f'Networks/Reconstruction_{vertex}')
