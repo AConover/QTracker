@@ -99,8 +99,7 @@ while n_train < 1e7:
         if min(history.history['val_loss']) < val_loss_before:
             model.save('Networks/event_filter')
             learning_rate_filter *= 2
-        else:
-            learning_rate_filter /= 2
+        learning_rate_filter /= 2
 
     del trainsignals, trainin, valin, valsignals, model
     gc.collect()
