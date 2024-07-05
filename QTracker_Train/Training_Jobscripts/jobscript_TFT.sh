@@ -4,8 +4,8 @@
 #SBATCH --gres=gpu:4  
 #SBATCH --cpus-per-task=4
 #SBATCH -t 72:00:00
-#SBATCH -J QTracking_Training_TFT
-#SBATCH -o Slurm_Files/QTracking_Training_TFT.out
+#SBATCH -J QTracking_TFT
+#SBATCH -o Slurm_Files/QTracking_TFT.out
 #SBATCH -e Slurm_Files/QTracking_TFT.err
 #SBATCH --mem=128000
 
