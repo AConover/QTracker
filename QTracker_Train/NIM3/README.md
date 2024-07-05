@@ -1,1 +1,0 @@
-This folder should be populated with the random events (NIM3 Trigger) from E906. They can be found on Rivanna under /project/ptgroup/QTracker_Training/NIM3.
