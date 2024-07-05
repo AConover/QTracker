@@ -3,30 +3,23 @@
 # Submit the Event Filter Training Job
 job1_id=$(sbatch Training_Jobscripts/jobscript_Event_Filter.sh | awk '{print $4}')
 
-# Submit All-Vertex Finding Job, start once the event filter is done.
-job2_id=$(sbatch --dependency=afterok:$job1_id Training_Jobscripts/jobscript_TFA.sh | awk '{print $4}')
+# Submit the Muon Track Finding Jobs, start once the event filter is done training.
+job2_id=$(sbatch --dependency=afterok:$job1_id Training_Jobscripts/jobscript_TFP.sh | awk '{print $4}')
+job3_id=$(sbatch --dependency=afterok:$job1_id Training_Jobscripts/jobscript_TFN.sh | awk '{print $4}')
 
-# Submit Z-Vertex Finding Job, start once the event filter is done.
-job3_id=$(sbatch --dependency=afterok:$job1_id Training_Jobscripts/jobscript_TFZ.sh | awk '{print $4}')
+# Once Muon Finders are trained, start training muon vertex reconstruction and dimuon track finders.
+job4_id=$(sbatch --dependency=afterok:$job2_id:$job3_id Training_Jobscripts/jobscript_TFA.sh | awk '{print $4}')
+job5_id=$(sbatch --dependency=afterok:$job2_id:$job3_id Training_Jobscripts/jobscript_TFZ.sh | awk '{print $4}')
+job6_id=$(sbatch --dependency=afterok:$job2_id:$job3_id Training_Jobscripts/jobscript_TFT.sh | awk '{print $4}')
+job7_id=$(sbatch --dependency=afterok:$job2_id:$job3_id Training_Jobscripts/jobscript_TFD.sh | awk '{print $4}')
+job8_id=$(sbatch --dependency=afterok:$job2_id:$job3_id Training_Jobscripts/jobscript_Muon_Vertexing.sh | awk '{print $4}')
 
-# Submit Target-Vertex Finding Job, start once the event filter is done.
-job4_id=$(sbatch --dependency=afterok:$job1_id Training_Jobscripts/jobscript_TFT.sh | awk '{print $4}')
-
-# Submit Dump-Vertex Finding Job, start once the event filter is done.
-job5_id=$(sbatch --dependency=afterok:$job1_id Training_Jobscripts/jobscript_TFD.sh | awk '{print $4}')
-
-# Submit the All-Vertex Kinematic and Vertex Reconstruction job once the All-Vertex Finder is done training.
-job6_id=$(sbatch --dependency=afterok:$job2_id Training_Jobscripts/jobscript_Kin_All.sh | awk '{print $4}')
-
-# Submit the Z-Vertex Kinematic and Vertex Reconstruction job once the Z-Vertex Finder is done training.
-job7_id=$(sbatch --dependency=afterok:$job3_id Training_Jobscripts/jobscript_Kin_Z.sh | awk '{print $4}')
-
-# Submit the Target-Vertex Kinematic Reconstruction job once the Target-Vertex Finder is done training.
-job8_id=$(sbatch --dependency=afterok:$job4_id Training_Jobscripts/jobscript_Kin_Target.sh | awk '{print $4}')
-
-# Submit the Dump-Vertex Kinematic Reconstruction job once the Target-Vertex Finder is done training.
-job8_id=$(sbatch --dependency=afterok:$job5_id Training_Jobscripts/jobscript_Kin_Dump.sh | awk '{print $4}')
+# Submit the Reconstruction trainings after their respective track finders are done training.
+job9_id=$(sbatch --dependency=afterok:$job4_id Training_Jobscripts/jobscript_Kin_All.sh | awk '{print $4}')
+job10_id=$(sbatch --dependency=afterok:$job5_id Training_Jobscripts/jobscript_Kin_Z.sh | awk '{print $4}')
+job11_id=$(sbatch --dependency=afterok:$job6_id Training_Jobscripts/jobscript_Kin_Target.sh | awk '{print $4}')
+job12_id=$(sbatch --dependency=afterok:$job7_id Training_Jobscripts/jobscript_Kin_Dump.sh | awk '{print $4}')
 
 # Submit the target-dump filter training once everything else is done.
-sbatch --dependency=afterok:$job6_id:$job7_id:$job8_id:$job9_id Training_Jobscripts/jobscript_Target_Dump_Filter.sh
+sbatch --dependency=afterok:$job8_id:$job9_id:$job10_id:$job11_id:$job12_id Training_Jobscripts/jobscript_Target_Dump_Filter.sh
 
