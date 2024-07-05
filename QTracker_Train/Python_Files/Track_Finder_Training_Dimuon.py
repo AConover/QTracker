@@ -153,8 +153,7 @@ while(n_train < 1e7):
         if min(history.history['val_loss']) < val_loss_before:
             model.save(model_name)  # Save only if improved
             learning_rate_finder *= 2
-        else:
-            learning_rate_finder /= 2
+        learning_rate_finder /= 2
 
     del model  # Delete the model to free up memory
     gc.collect()  # Force garbage collection to release GPU memory
