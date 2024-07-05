@@ -4,7 +4,7 @@
 #SBATCH --gres=gpu:4  
 #SBATCH --cpus-per-task=4
 #SBATCH -t 72:00:00
-#SBATCH -J QTracking_Z_Reco
+#SBATCH -J QTracking_Dump_Reco
 #SBATCH -o Slurm_Files/QTracking_Dump_Reco.out
 #SBATCH -e Slurm_Files/QTracking_Dump_Reco.err
 #SBATCH --mem=256000
