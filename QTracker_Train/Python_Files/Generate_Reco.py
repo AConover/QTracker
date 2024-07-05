@@ -77,9 +77,10 @@ DN_batch = 8192 * num_gpus
 def run_qtracker():
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
-    model = tf.keras.models.load_model('../Networks/event_filter')
-    probability_model = tf.keras.Sequential([model, tf.keras.layers.Softmax()])
-    event_classification_probabilies = probability_model.predict(hits,batch_size=EF_batch, verbose=0)
+    with strategy.scope():
+        model = tf.keras.models.load_model('../Networks/event_filter')
+        probability_model = tf.keras.Sequential([model, tf.keras.layers.Softmax()])
+        event_classification_probabilies = probability_model.predict(hits,batch_size=EF_batch, verbose=0)
 
     mask = event_classification_probabilies[:,1]>=dimuon_prob_threshold
     hits = hits[mask]
@@ -87,21 +88,25 @@ def run_qtracker():
     event_classification_probabilies = event_classification_probabilies[mask]
     
     tf.keras.backend.clear_session()
-    model = tf.keras.models.load_model('../Networks/Track_Finder_Pos')
-    pos_predictions = model.predict(hits[mask], verbose=0, batch_size = TF_batch)
+    with strategy.scope():
+        model = tf.keras.models.load_model('../Networks/Track_Finder_Pos')
+        pos_predictions = model.predict(hits[mask], verbose=0, batch_size = TF_batch)
     tf.keras.backend.clear_session()
-    model = tf.keras.models.load_model('../Networks/Track_Finder_Neg')
-    neg_predictions =model.predict(hits[mask], verbose=0, batch_size = TF_batch)
+    with strategy.scope():
+        model = tf.keras.models.load_model('../Networks/Track_Finder_Neg')
+        neg_predictions =model.predict(hits[mask], verbose=0, batch_size = TF_batch)
     predictions = (np.round(np.column_stack((pos_predictions,neg_predictions))*max_ele)).astype(int)
 
     muon_tracks=evaluate_finder(hits[mask],drift[mask],predictions)
 
     tf.keras.backend.clear_session()
-    model = tf.keras.models.load_model('../Networks/Vertexing_Pos')
-    pos_pred = model.predict(muon_tracks[:,:34,:2], verbose=0, batch_size = DN_batch)
+    with strategy.scope():
+        model = tf.keras.models.load_model('../Networks/Vertexing_Pos')
+        pos_pred = model.predict(muon_tracks[:,:34,:2], verbose=0, batch_size = DN_batch)
     tf.keras.backend.clear_session()
-    model = tf.keras.models.load_model('../Networks/Vertexing_Neg')
-    neg_pred = model.predict(muon_tracks[:,34:,:2], verbose=0, batch_size = DN_batch)
+    with strategy.scope():
+        model = tf.keras.models.load_model('../Networks/Vertexing_Neg')
+        neg_pred = model.predict(muon_tracks[:,34:,:2], verbose=0, batch_size = DN_batch)
 
     muon_track_quality = calc_mismatches(muon_tracks)
     mask = ((muon_track_quality[0::4] < 2) & (muon_track_quality[1::4] < 2) & (muon_track_quality[2::4] < 3) & (muon_track_quality[3::4] < 3)).all(axis=0)
@@ -117,65 +122,75 @@ def run_qtracker():
 
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
-    model = tf.keras.models.load_model('../Networks/Track_Finder_All')
-    predictions = (np.round(model.predict(hits,verbose=0, batch_size = TF_batch)*max_ele)).astype(int)
+    with strategy.scope():
+        model = tf.keras.models.load_model('../Networks/Track_Finder_All')
+        predictions = (np.round(model.predict(hits,verbose=0, batch_size = TF_batch)*max_ele)).astype(int)
     all_vtx_track = evaluate_finder(hits,drift,predictions)[:,:,:2]
 
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
-    model=tf.keras.models.load_model('../Networks/Reconstruction_All')
-    reco_kinematics = model.predict(all_vtx_track,batch_size=DN_batch,verbose=0)
+    with strategy.scope():
+        model=tf.keras.models.load_model('../Networks/Reconstruction_All')
+        reco_kinematics = model.predict(all_vtx_track,batch_size=DN_batch,verbose=0)
 
     vertex_input=np.concatenate((reco_kinematics.reshape((len(reco_kinematics),3,2)),all_vtx_track),axis=1)
 
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
-    model=tf.keras.models.load_model('../Networks/Vertexing_All')
-    reco_vertex = model.predict(vertex_input,batch_size=DN_batch,verbose=0)
+    with strategy.scope():
+        model=tf.keras.models.load_model('../Networks/Vertexing_All')
+        reco_vertex = model.predict(vertex_input,batch_size=DN_batch,verbose=0)
 
     all_vtx_reco=np.concatenate((reco_kinematics,reco_vertex),axis=1)
 
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
-    model = tf.keras.models.load_model('../Networks/Track_Finder_Z')
-    predictions = (np.round(model.predict(hits,verbose=0, batch_size = TF_batch)*max_ele)).astype(int)
+    with strategy.scope():
+        model = tf.keras.models.load_model('../Networks/Track_Finder_Z')
+        predictions = (np.round(model.predict(hits,verbose=0, batch_size = TF_batch)*max_ele)).astype(int)
     z_vtx_track = evaluate_finder(hits,drift,predictions)[:,:,:2]
 
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
-    model=tf.keras.models.load_model('../Networks/Reconstruction_Z')
-    reco_kinematics = model.predict(z_vtx_track,batch_size=DN_batch,verbose=0)
+    with strategy.scope():
+        model=tf.keras.models.load_model('../Networks/Reconstruction_Z')
+        reco_kinematics = model.predict(z_vtx_track,batch_size=DN_batch,verbose=0)
 
     vertex_input=np.concatenate((reco_kinematics.reshape((len(reco_kinematics),3,2)),z_vtx_track),axis=1)
 
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
-    model=tf.keras.models.load_model('../Networks/Vertexing_Z')
-    reco_vertex = model.predict(vertex_input,batch_size=DN_batch,verbose=0)
+    with strategy.scope():
+        model=tf.keras.models.load_model('../Networks/Vertexing_Z')
+        reco_vertex = model.predict(vertex_input,batch_size=DN_batch,verbose=0)
 
     z_vtx_reco=np.concatenate((reco_kinematics,reco_vertex),axis=1)
 
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
-    model = tf.keras.models.load_model('../Networks/Track_Finder_Target')
-    predictions = (np.round(model.predict(hits,verbose=0, batch_size = TF_batch)*max_ele)).astype(int)
+    with strategy.scope():
+        model = tf.keras.models.load_model('../Networks/Track_Finder_Target')
+        predictions = (np.round(model.predict(hits,verbose=0, batch_size = TF_batch)*max_ele)).astype(int)
     target_track = evaluate_finder(hits,drift,predictions)
 
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
-    model=tf.keras.models.load_model('../Networks/Reconstruction_Target')
-    target_vtx_reco = model.predict(target_track[:,:,:2],batch_size=DN_batch,verbose=0)
+    with strategy.scope():
+        model=tf.keras.models.load_model('../Networks/Reconstruction_Target')
+        target_vtx_reco = model.predict(target_track[:,:,:2],batch_size=DN_batch,verbose=0)
 
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
-    model = tf.keras.models.load_model('../Networks/Track_Finder_Dump')
-    predictions = (np.round(model.predict(hits,verbose=0, batch_size = TF_batch)*max_ele)).astype(int)
+    with strategy.scope():
+        model = tf.keras.models.load_model('../Networks/Track_Finder_Dump')
+        predictions = (np.round(model.predict(hits,verbose=0, batch_size = TF_batch)*max_ele)).astype(int)
     dump_track = evaluate_finder(hits,drift,predictions)[:,:,:2]
 
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
-    model=tf.keras.models.load_model('../Networks/Reconstruction_Dump')
-    dump_vtx_reco = model.predict(dump_track,batch_size=DN_batch,verbose=0)
+    with strategy.scope():
+        model=tf.keras.models.load_model('../Networks/Reconstruction_Dump')
+        dump_vtx_reco = model.predict(dump_track,batch_size=DN_batch,verbose=0)
     
     dimuon_track_quality = calc_mismatches(target_track)
 
