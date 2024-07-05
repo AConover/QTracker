@@ -4,9 +4,9 @@
 #SBATCH --gres=gpu:4  
 #SBATCH --cpus-per-task=4
 #SBATCH -t 72:00:00
-#SBATCH -J QTracking_All_Reco
-#SBATCH -o Slurm_Files/QTracking_All_Reco.out
-#SBATCH -e Slurm_Files/QTracking_All_Reco.err
+#SBATCH -J QTracking_Muon_Reco
+#SBATCH -o Slurm_Files/QTracking_Muon_Reco.out
+#SBATCH -e Slurm_Files/QTracking_Muon_Reco.err
 #SBATCH --mem=256000
 
 module purge
