@@ -88,7 +88,7 @@ batch_size_ef = 256 * num_gpus
 batch_size_tf = 64 * num_gpus    
 
 print("Before while loop:", n_train)
-while(n_train < 5e6):
+while(n_train < 1e7):
     trainin, traintrack = generate_hit_matrices(750000, "Train")
     print("Generated Training Data")
     traintrack = traintrack / max_ele
