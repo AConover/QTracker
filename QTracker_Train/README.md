@@ -6,4 +6,4 @@ Alternatively, each script in Training_Jobscripts can be run separately using th
 
 If not running on Rivanna, each file in the Python_Files folder can be run independently. Make sure to run the command from this directory, as such:
 
-python Python_Files/script.py
+python Python_Files/script.py [options]
