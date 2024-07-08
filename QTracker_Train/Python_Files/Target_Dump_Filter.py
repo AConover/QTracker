@@ -68,7 +68,7 @@ y_val = y_val[indices]
 
 model = tf.keras.models.load_model('Networks/target_dump_filter')
 
-optimizer = tf.keras.optimizers.Adam(learning_rate=1e-6)
+optimizer = tf.keras.optimizers.Adam(learning_rate=1e-5)
 
 # Compile the model with the updated optimizer
 model.compile(optimizer=optimizer,

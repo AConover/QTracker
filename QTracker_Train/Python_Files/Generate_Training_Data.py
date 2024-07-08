@@ -16,6 +16,7 @@ opt = sys.argv[1]
 
 if(opt == 'Muon'):
     single_muon=True
+else:single_muon=False
 
 root_file_train = f"Root_Files/{opt}_Train_QA_v2.root"
 root_file_val = f"Root_Files/{opt}_Val_QA_v2.root"
@@ -30,7 +31,8 @@ def track_injection(hits, drift, pos_e, neg_e, pos_d, neg_d, pos_k, neg_k):
     kin = np.zeros((len(hits), 12))
     for z in prange(len(hits)):
         j = random.randrange(len(pos_e))
-        if single_muon:j2 = np.random.randint(len(neg_e))
+        if single_muon:j2 = random.randrange(len(neg_e))
+        else:j2=j
         kin[z, :6] = pos_k[j]
         kin[z, 6:] = neg_k[j2]
         for k in range(54):
@@ -104,14 +106,14 @@ while n_train < 1e7:
     tf.keras.backend.clear_session()
     with strategy.scope():
         track_finder_pos = tf.keras.models.load_model('Networks/Track_Finder_Pos')
-        pos_predictions_val = (np.round(track_finder_pos.predict(valin, verbose=0, batch_size = batch_size_tf) * max_ele)).astype(int)
-        pos_predictions_train = (np.round(track_finder_pos.predict(trainin, verbose=0, batch_size = batch_size_tf) * max_ele)).astype(int)
+        pos_predictions_val = (np.round(track_finder_pos.predict(valin, verbose=0, batch_size = batch_size_tf) * max_ele[:34])).astype(int)
+        pos_predictions_train = (np.round(track_finder_pos.predict(trainin, verbose=0, batch_size = batch_size_tf) * max_ele[:34])).astype(int)
     
     tf.keras.backend.clear_session()
     with strategy.scope():
         track_finder_neg = tf.keras.models.load_model('Networks/Track_Finder_Neg')
-        neg_predictions_val = (np.round(track_finder_neg.predict(valin, verbose=0, batch_size = batch_size_tf) * max_ele)).astype(int)
-        neg_predictions_train = (np.round(track_finder_neg.predict(trainin, verbose=0, batch_size = batch_size_tf) * max_ele)).astype(int)
+        neg_predictions_val = (np.round(track_finder_neg.predict(valin, verbose=0, batch_size = batch_size_tf) * max_ele[:34])).astype(int)
+        neg_predictions_train = (np.round(track_finder_neg.predict(trainin, verbose=0, batch_size = batch_size_tf) * max_ele[:34])).astype(int)
     
     # Update mask for validation data
     track_val = evaluate_finder(valin, valdrift, np.column_stack((pos_predictions_val, neg_predictions_val)))
@@ -124,7 +126,7 @@ while n_train < 1e7:
     train_mask &= ((results_train[0::4] < 2) & (results_train[1::4] < 2) & (results_train[2::4] < 3) & (results_train[3::4] < 3)).all(axis=0)
     
     
-    if ~single_muon:
+    if single_muon==False:
         # Apply masks
         trainin = trainin[train_mask]
         traindrift = traindrift[train_mask]

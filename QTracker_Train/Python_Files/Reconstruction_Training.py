@@ -4,17 +4,18 @@ import gc
 import sys
 
 if len(sys.argv) != 3:
-        print("Usage: python script.py <Option> <Version>")
-        print("Options are Vertex or Momentum")
-        print("Version are Pos, Neg, All, Z, Target, or Dump")
-        exit(1)
+    print("Usage: python script.py <Option> <Version>")
+    print("Options are Vertex or Momentum")
+    print("Version are Pos, Neg, All, Z, Target, or Dump")
+    exit(1)
 
 opt = sys.argv[1]
 vers = sys.argv[2]
-version = vers
+version = sys.argv[2]
 
 if(vers == 'Pos') or (vers == 'Neg'):
     single_muon=True
+else:single_muon=False
 
 if opt == 'Vertex':
     model_name = f'Networks/Vertexing_{version}'
@@ -65,18 +66,18 @@ filt = np.max(abs(trainin_reco.reshape(len(trainin_reco),(136))),axis=1)<1000
 trainin_reco = trainin_reco[filt]
 trainkinematics = trainkinematics[filt]
 
-if opt == 'Vertex'
+if opt == 'Vertex':
     if(vers=="Pos"):
-        trainout = trainkinematics[:,6]
-        valout = valkinematics[:,6]
+        trainout = trainkinematics[:,0]
+        valout = valkinematics[:,0]
     if(vers=="Neg"):
-        trainout = trainkinematics[:,12]
-        valout = valkinematics[:,12]
-    else:
+        trainout = trainkinematics[:,1]
+        valout = valkinematics[:,1]
+    if ~single_muon:
         trainout = trainkinematics[:,-3:]
         valout = valkinematics[:,-3:]
-        trainout = (trainvertex-vertex_means)/vertex_stds
-        valout = (valvertex-vertex_means)/vertex_stds
+        trainout = (trainout-vertex_means)/vertex_stds
+        valout = (valout-vertex_means)/vertex_stds
         with strategy.scope():
             model=tf.keras.models.load_model(mom_model_name)
 
@@ -89,11 +90,11 @@ if opt == 'Vertex'
                                    valin_reco),axis=1)
 
 
-if opt == 'Momentum'
-    trainout = np.column_stack((trainkinematics[:,:3],trainkinematics[:,6:9]))
-    valout = np.column_stack((valkinematics[:,:3],valkinematics[:,6:9]))
-    trainout = (trainkin-kin_means)/kin_stds
-    valout = (valkin-kin_means)/kin_stds
+if opt == 'Momentum':
+    trainout = np.column_stack((trainkinematics[:,:3],trainkinematics[:,-6:-3]))
+    valout = np.column_stack((valkinematics[:,:3],valkinematics[:,-6:-3]))
+    trainout = (trainout-kin_means)/kin_stds
+    valout = (valout-kin_means)/kin_stds
 
 tf.keras.backend.clear_session()
 with strategy.scope():
@@ -102,7 +103,7 @@ with strategy.scope():
     model.compile(optimizer=optimizer,
           loss=tf.keras.losses.mse,
           metrics=tf.keras.metrics.RootMeanSquaredError())
-    history = model.fit(train_input, trainout,
+    history = model.fit(trainin_reco, trainout,
                 epochs=10000, batch_size=batch_size_training, verbose=2, 
-                validation_data=(val_input,valout),callbacks=[callback])
+                validation_data=(valin_reco,valout),callbacks=[callback])
     model.save(model_name)
