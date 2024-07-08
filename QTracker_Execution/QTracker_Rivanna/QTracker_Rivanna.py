@@ -331,38 +331,41 @@ def load_model(path):
     tf.compat.v1.reset_default_graph()
     return tf.keras.models.load_model(path)
 
-def process_root_file(root_file, root_directory, i, max_ele, dimuon_prob_threshold, means, stds, kin_means, kin_stds):
+def process_file(file_path, file_extension, max_ele, dimuon_prob_threshold, means, stds, kin_means, kin_stds):
     try:
-        i += 1
-        print(i)
-        print(root_file)
-        targettree = uproot.open(os.path.join(root_directory, root_file) + ":save")
+        if file_extension == '.root':
+            # Read in data from the ROOT file.
+            targettree = uproot.open(file_path + ":save")
+            detectorid = targettree["fAllHits.detectorID"].arrays(library="np")["fAllHits.detectorID"]
+            elementid = targettree["fAllHits.elementID"].arrays(library="np")["fAllHits.elementID"]
+            driftdistance = targettree["fAllHits.driftDistance"].arrays(library="np")["fAllHits.driftDistance"]
+            tdctime = targettree["fAllHits.tdcTime"].arrays(library="np")["fAllHits.tdcTime"]
+            intime = targettree["fAllHits.flag"].arrays(library="np")["fAllHits.flag"]
 
-        # Event Data
-        detectorid = targettree["fAllHits.detectorID"].arrays(library="np")["fAllHits.detectorID"]
-        elementid = targettree["fAllHits.elementID"].arrays(library="np")["fAllHits.elementID"]
-        driftdistance = targettree["fAllHits.driftDistance"].arrays(library="np")["fAllHits.driftDistance"]
-        tdctime = targettree["fAllHits.tdcTime"].arrays(library="np")["fAllHits.tdcTime"]
-        intime = targettree["fAllHits.flag"].arrays(library="np")["fAllHits.flag"]
+            hits = np.zeros((len(detectorid), 54, 201), dtype=bool)
+            drift = np.zeros((len(detectorid), 54, 201))
+            tdc = np.zeros((len(detectorid), 54, 201), dtype=int)
 
-        hits = np.zeros((len(detectorid), 54, 201), dtype=bool)
-        drift = np.zeros((len(detectorid), 54, 201))
-        tdc = np.zeros((len(detectorid), 54, 201), dtype=int)
+            for n in range(len(detectorid)):
+                hits[n], drift[n], tdc[n] = hit_matrix(detectorid[n], elementid[n], driftdistance[n], tdctime[n], intime[n], hits[n], drift[n], tdc[n])
 
-        for n in range(len(detectorid)):
-            hits[n], drift[n], tdc[n] = hit_matrix(detectorid[n], elementid[n], driftdistance[n], tdctime[n], intime[n], hits[n], drift[n], tdc[n])
+            declusterize(hits, drift, tdc)
 
-        declusterize(hits, drift, tdc)
-        
-        # Load and apply the event filter model
-        model = load_model('../Networks/event_filter')
+        elif file_extension == '.npz':
+            generated = np.load(file_path)
+            hits = generated["hits"]
+            drift = generated["drift"]
+            truth = generated["truth"]
+
+        print("Loaded events")
+
+        model = load_model('Networks/event_filter')
         probability_model = tf.keras.Sequential([model, tf.keras.layers.Softmax()])
         event_classification_probabilities = probability_model.predict(hits, batch_size=256, verbose=0)
-        
-        filt = event_classification_probabilities[:, 3] >= dimuon_prob_threshold
-        hits, drift, tdc = hits[filt], drift[filt], tdc[filt]
 
-        # Load and apply the track finder models
+        filt = event_classification_probabilities[:, 1] > dimuon_prob_threshold
+        hits, drift = hits[filt], drift[filt]
+
         pos_model = load_model('../Networks/Track_Finder_Pos')
         pos_predictions = pos_model.predict(hits, verbose=0)
         neg_model = load_model('../Networks/Track_Finder_Neg')
@@ -371,37 +374,33 @@ def process_root_file(root_file, root_directory, i, max_ele, dimuon_prob_thresho
 
         muon_track = evaluate_finder(hits, drift, predictions)
 
-        # Load and apply the reconstruction models
         pos_recon_model = load_model('../Networks/Reconstruction_Pos')
         pos_pred = pos_recon_model.predict(muon_track[:, :34, :2], verbose=0)
         neg_recon_model = load_model('../Networks/Reconstruction_Neg')
         neg_pred = neg_recon_model.predict(muon_track[:, 34:, :2], verbose=0)
 
-        # Filter based on track quality
         muon_track_quality = calc_mismatches(muon_track).T
         filt1 = ((muon_track_quality[0::4] < 2) & (muon_track_quality[1::4] < 2) & (muon_track_quality[2::4] < 3) & (muon_track_quality[3::4] < 3)).all(axis=0)
 
-        hits, drift, tdc = hits[filt1], drift[filt1], tdc[filt1]
+        hits, drift = hits[filt1], drift[filt1]
 
-        # Meta Data
-        runid = targettree["fRunID"].arrays(library="np")["fRunID"][filt][filt1]
-        eventid = targettree["fEventID"].arrays(library="np")["fEventID"][filt][filt1]
-        spill_id = targettree["fSpillID"].arrays(library="np")["fSpillID"][filt][filt1]
-        trigger_bit = targettree["fTriggerBits"].arrays(library="np")["fTriggerBits"][filt][filt1]
-        target_position = targettree["fTargetPos"].arrays(library="np")["fTargetPos"][filt][filt1]
-        turnid = targettree["fTurnID"].arrays(library="np")["fTurnID"][filt][filt1]
-        rfid = targettree["fRFID"].arrays(library="np")["fRFID"][filt][filt1]
-        intensity = targettree["fIntensity[33]"].arrays(library="np")["fIntensity[33]"][filt][filt1]
-        n_roads = targettree["fNRoads[4]"].arrays(library="np")["fNRoads[4]"][filt][filt1]
-        n_hits = targettree["fNHits[55]"].arrays(library="np")["fNHits[55]"][filt][filt1]
+        if file_extension == '.root':
+            runid = targettree["fRunID"].arrays(library="np")["fRunID"][filt][filt1]
+            eventid = targettree["fEventID"].arrays(library="np")["fEventID"][filt][filt1]
+            spill_id = targettree["fSpillID"].arrays(library="np")["fSpillID"][filt][filt1]
+            trigger_bit = targettree["fTriggerBits"].arrays(library="np")["fTriggerBits"][filt][filt1]
+            target_position = targettree["fTargetPos"].arrays(library="np")["fTargetPos"][filt][filt1]
+            turnid = targettree["fTurnID"].arrays(library="np")["fTurnID"][filt][filt1]
+            rfid = targettree["fRFID"].arrays(library="np")["fRFID"][filt][filt1]
+            intensity = targettree["fIntensity[33]"].arrays(library="np")["fIntensity[33]"][filt][filt1]
+            n_roads = targettree["fNRoads[4]"].arrays(library="np")["fNRoads[4]"][filt][filt1]
+            n_hits = targettree["fNHits[55]"].arrays(library="np")["fNHits[55]"][filt][filt1]
 
-        event_classification_probabilities = event_classification_probabilities[filt][filt1]
-        pos_pred, neg_pred = pos_pred[filt1], neg_pred[filt1]
-        muon_track_quality = muon_track_quality[filt1]
+        elif file_extension == '.npz':
+            truth = truth[filt][filt1]
 
         print("Filtered Events")
         if len(hits) > 0:
-            # Load and apply models for further processing
             track_finder_all_model = load_model('../Networks/Track_Finder_All')
             predictions = (np.round(track_finder_all_model.predict(hits, verbose=0) * max_ele)).astype(int)
             all_vtx_track = evaluate_finder(hits, drift, predictions)[:, :, :2]
@@ -464,12 +463,12 @@ def process_root_file(root_file, root_directory, i, max_ele, dimuon_prob_thresho
         else:
             print("No events meeting dimuon criteria.")
     except Exception as e:
-        print(f"Error processing file {root_file}: {e}")
+        print(f"Error processing file {file_path}: {e}")
 
 root_files = [file for file in os.listdir(root_directory) if file.endswith('.root')]
     
 for i, root_file in enumerate(root_files):
-    process_root_file(root_file, root_directory, i, max_ele, dimuon_prob_threshold, means, stds, kin_means, kin_stds)
+    process_file(root_file, root_directory, i, max_ele, dimuon_prob_threshold, means, stds, kin_means, kin_stds)
 
     
 
