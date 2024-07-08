@@ -10,7 +10,8 @@ timing_cuts = True #Use SRawEvent intime flag for hit filtering
 
 #####Output Options#####
 event_prob_output = True #Output the event filter probabilites for reconstructed events
-n_mismatch_output = True #Output the number of drift chamber mismatches for each chamber
+track_quality_output = True #Output the number of drift chamber mismatches for each chamber
+target_prob_output = True #Output the probability that the dimuon pair is from the target.
 tracks_output = False #Output the element IDs for the identified tracks for all three track finders
 metadata_output = True #Output metadata
 
