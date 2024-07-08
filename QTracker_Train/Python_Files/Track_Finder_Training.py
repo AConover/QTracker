@@ -125,20 +125,20 @@ while(n_train<5e6):
     train_mask = train_predictions[:, 1] > 0.75
     val_mask = val_predictions[:, 1] > 0.75
     
-    if ~single_muon: #If a dimuon finder, run generated events through single-muon finders first.
+    if single_muon==False: #If a dimuon finder, run generated events through single-muon finders first.
         tf.keras.backend.clear_session()
 
         with strategy.scope():
             track_finder_pos = tf.keras.models.load_model('Networks/Track_Finder_Pos')
-            pos_predictions_val = (np.round(track_finder_pos.predict(valin, verbose=0, batch_size = batch_size_tf) * max_ele)).astype(int)
-            pos_predictions_train = (np.round(track_finder_pos.predict(trainin, verbose=0, batch_size = batch_size_tf) * max_ele)).astype(int)
+            pos_predictions_val = (np.round(track_finder_pos.predict(valin, verbose=0, batch_size = batch_size_tf) * max_ele[:34])).astype(int)
+            pos_predictions_train = (np.round(track_finder_pos.predict(trainin, verbose=0, batch_size = batch_size_tf) * max_ele[:34])).astype(int)
 
         tf.keras.backend.clear_session()
 
         with strategy.scope():
             track_finder_neg = tf.keras.models.load_model('Networks/Track_Finder_Neg')
-            neg_predictions_val = (np.round(track_finder_neg.predict(valin, verbose=0) * max_ele)).astype(int)
-            neg_predictions_train = (np.round(track_finder_neg.predict(trainin, verbose=0) * max_ele)).astype(int)
+            neg_predictions_val = (np.round(track_finder_neg.predict(valin, verbose=0, batch_size = batch_size_tf) * max_ele[:34])).astype(int)
+            neg_predictions_train = (np.round(track_finder_neg.predict(trainin, verbose=0, batch_size = batch_size_tf) * max_ele[:34])).astype(int)
 
         track_val = evaluate_finder(valin, valdrift, np.column_stack((pos_predictions_val, neg_predictions_val)))
         results_val = calc_mismatches(track_val)
