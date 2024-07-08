@@ -164,42 +164,12 @@ vertex_stds=np.array([10,10,300])
 means = np.concatenate((kin_means,vertex_means))
 stds = np.concatenate((kin_stds,vertex_stds))
 
-@njit(nopython=True)
+# Function to convert raw detector data into a structured hit matrix.
+@njit()
 def hit_matrix(detectorid,elementid,drifttime,tdctime,intime,hits,drift,tdc): #Convert into hit matrices
     if(timing_cuts==False):intime[:]=2
     for j in prange (len(detectorid)):
-        #Apply station 0 TDC timing cuts
-        if (detectorid[j]<7) and (intime[j]>0):
-            if (tdc[int(detectorid[j])-1][int(elementid[j]-1)]==0) or (tdctime[j]<tdc[int(detectorid[j])-1][int(elementid[j]-1)]):
-                hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
-                drift[int(detectorid[j])-1][int(elementid[j]-1)]=drifttime[j]
-                tdc[int(detectorid[j])-1][int(elementid[j]-1)]=tdctime[j]
-        #Apply station 2 TDC timing cuts
-        if (detectorid[j]>12) and (detectorid[j]<19) and (intime[j]>0):
-            if (tdc[int(detectorid[j])-1][int(elementid[j]-1)]==0) or (tdctime[j]<tdc[int(detectorid[j])-1][int(elementid[j]-1)]):
-                hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
-                drift[int(detectorid[j])-1][int(elementid[j]-1)]=drifttime[j]
-                tdc[int(detectorid[j])-1][int(elementid[j]-1)]=tdctime[j]
-        #Apply station 3p TDC timing cuts
-        if (detectorid[j]>18) and (detectorid[j]<25) and (intime[j]>0):
-            if (tdc[int(detectorid[j])-1][int(elementid[j]-1)]==0) or (tdctime[j]<tdc[int(detectorid[j])-1][int(elementid[j]-1)]):
-                hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
-                drift[int(detectorid[j])-1][int(elementid[j]-1)]=drifttime[j]
-                tdc[int(detectorid[j])-1][int(elementid[j]-1)]=tdctime[j]
-        #Apply station 3p TDC timing cuts
-        if (detectorid[j]>24) and (detectorid[j]<31) and (intime[j]>0):
-            if (tdc[int(detectorid[j])-1][int(elementid[j]-1)]==0) or (tdctime[j]<tdc[int(detectorid[j])-1][int(elementid[j]-1)]):
-                hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
-                drift[int(detectorid[j])-1][int(elementid[j]-1)]=drifttime[j]
-                tdc[int(detectorid[j])-1][int(elementid[j]-1)]=tdctime[j]
-        #Apply prop tube TDC timing cuts
-        if (detectorid[j]>46) and (detectorid[j]<55) and (intime[j]>0):
-            if (tdc[int(detectorid[j])-1][int(elementid[j]-1)]==0) or (tdctime[j]<tdc[int(detectorid[j])-1][int(elementid[j]-1)]):
-                hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
-                drift[int(detectorid[j])-1][int(elementid[j]-1)]=drifttime[j]
-                tdc[int(detectorid[j])-1][int(elementid[j]-1)]=tdctime[j]
-        #Apply hodoscope timing cuts
-        if (detectorid[j]>30) and (detectorid[j]<47) and (intime[j]>0):
+        if ((detectorid[j]<7) or (detectorid[j]>12)) and (intime[j]>0):
             if (tdc[int(detectorid[j])-1][int(elementid[j]-1)]==0) or (tdctime[j]<tdc[int(detectorid[j])-1][int(elementid[j]-1)]):
                 hits[int(detectorid[j])-1][int(elementid[j]-1)]=1
                 drift[int(detectorid[j])-1][int(elementid[j]-1)]=drifttime[j]
