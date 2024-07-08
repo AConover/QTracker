@@ -12,8 +12,8 @@
 module purge
 module load apptainer tensorflow/2.13.0
 
-apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Generate_Training_Dimuon.py Z
-apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Kin_Training_Dimuon.py Z
+apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Generate_Training_Data.py Z
+apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Reconstruction_Training.py Momentum Z
 
-apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Generate_Training_Dimuon.py Z
-apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Vertex_Training_Dimuon.py Z
+apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Generate_Training_Data.py Z
+apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Reconstruction_Training.py Vertex Z

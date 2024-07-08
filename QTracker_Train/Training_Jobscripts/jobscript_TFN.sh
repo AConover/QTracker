@@ -12,4 +12,4 @@
 module purge
 module load apptainer tensorflow/2.13.0
 
-apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Track_Finder_Training_Muon.py Neg
+apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Track_Finder_Training.py Neg

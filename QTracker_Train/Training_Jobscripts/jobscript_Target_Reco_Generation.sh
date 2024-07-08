@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -A spinquest
 #SBATCH -p gpu
-#SBATCH --gres=gpu:4  
-#SBATCH --cpus-per-task=4
+#SBATCH --gres=gpu:4
+#SBATCH -c 16
 #SBATCH -t 72:00:00
 #SBATCH -J QTracking_Target_Reco
 #SBATCH -o Slurm_Files/QTracking_Target_Reco.out
@@ -12,5 +12,5 @@
 module purge
 module load apptainer tensorflow/2.13.0
 
-apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Generate_Training_Data.py Target
-apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Reconstruction_Training.py Momentum Target
+apptainer run --nv $CONTAINERDIR/tensorflow-2.13.0.sif Python_Files/Generate_Reco.py Target
+ 
