@@ -81,15 +81,16 @@ def save_output():
 		metadata = truth
 	output = []
 	if event_prob_output: output.append(event_classification_probabilies)
-	if n_mismatch_output:
-		output.append(dc_unmatched_st_1)
-		output.append(dc_unmatched_st_2)
-		output.append(dc_unmatched_st_3)
-	output.append(all_predictions)
+	    output.append(all_predictions)
+	if target_prob_output:
+	    output.append(target_dump_prob[:,1])
+	if track_quality_output:
+	    output.append(muon_track_quality)
+	    output.append(dimuon_track_quality)
 	if tracks_output: output.append(tracks)
 	if metadata_output: output.append(metadata)
 	output_data = np.column_stack(output)
-
+	
 	base_filename = 'Reconstructed/' + os.path.basename(root_file).split('.')[0]
 	os.makedirs("Reconstructed", exist_ok=True)  # Ensure the output directory exists.
 	np.save(base_filename + '_reconstructed.npy', output_data)  # Save the final dataset.
@@ -161,7 +162,7 @@ max_ele = [200, 200, 168, 168, 200, 200, 128, 128,  112,  112, 128, 128, 134, 13
 def evaluate_finder(testin, testdrift, predictions):
     # The function constructs inputs for the neural network model based on test data
     # and predictions, processing each event in parallel for efficiency.
-    reco_in = np.zeros((len(testin), 68, 2))
+    reco_in = np.zeros((len(testin), 68, 3))
     
     def process_entry(i, dummy, j_offset):
         j = dummy if dummy <= 5 else dummy + 6
@@ -196,6 +197,8 @@ def evaluate_finder(testin, testdrift, predictions):
 
         reco_in[i][dummy + j_offset][0] = sign * k
         reco_in[i][dummy + j_offset][1] = testdrift[i][j][k - 1]
+        if(testin[i][j][k - 1]==1):
+            reco_in[i][dummy + j_offset][2]=1
 
     for i in prange(predictions.shape[0]):
         for dummy in prange(34):
@@ -213,65 +216,85 @@ def declusterize(hits, drift, tdc):
     # together, likely caused by noise or multiple hits from a single particle passing
     # through the detector. It's an important step in cleaning the data for analysis.
     for k in prange(len(hits)):
-        for i in range(31):
-            for j in range(100):#Work from both sides
-                if(hits[k][i][j]==1 and hits[k][i][j+1]==1):
-                    if(hits[k][i][j+2]==0):#Two hits
-                        if(drift[k][i][j]>0.4 and drift[k][i][j+1]>0.9):#Edge hit check
-                            hits[k][i][j+1]=0
-                            drift[k][i][j+1]=0
-                            tdc[k][i][j+1]=0
-                        elif(drift[k][i][j+1]>0.4 and drift[k][i][j]>0.9):#Edge hit check
-                            hits[k][i][j]=0
-                            drift[k][i][j]=0
-                            tdc[k][i][j]=0
-                        if(abs(tdc[k][i][j]-tdc[k][i][j+1])<8):#Electronic Noise Check
-                            hits[k][i][j+1]=0
-                            drift[k][i][j+1]=0
-                            tdc[k][i][j+1]=0
-                            hits[k][i][j]=0
-                            drift[k][i][j]=0
-                            tdc[k][i][j]=0
-                            
-                    else:#Check larger clusters for Electronic Noise
-                        n=2
-                        while(hits[k][i][j+n]==1):n=n+1
-                        dt_mean = 0
-                        for m in range(n-1):
-                            dt_mean += (tdc[k][i][j+m]-tdc[k][i][j+m+1])
-                        dt_mean = dt_mean/(n-1)
-                        if(dt_mean<10):
-                            for m in range(n):
-                                hits[k][i][j+m]=0
-                                drift[k][i][j+m]=0
-                                tdc[k][i][j+m]=0
-                if(hits[k][i][200-j]==1 and hits[k][i][199-j]):
-                    if(hits[k][i][198-j]==0):
-                        if(drift[k][i][200-j]>0.4 and drift[k][i][199-j]>0.9):  # Edge hit check
-                            hits[k][i][199-j]=0
-                            drift[k][i][199-j]=0
-                        elif(drift[k][i][199-j]>0.4 and drift[k][i][200-j]>0.9):  # Edge hit check
-                            hits[k][i][200-j]=0
-                            drift[k][i][200-j]=0
-                        if(abs(tdc[k][i][200-j]-tdc[k][i][199-j])<8):  # Electronic Noise Check
-                            hits[k][i][199-j]=0
-                            drift[k][i][199-j]=0
-                            tdc[k][i][199-j]=0
-                            hits[k][i][200-j]=0
-                            drift[k][i][200-j]=0
-                            tdc[k][i][200-j]=0
-                    else:  # Check larger clusters for Electronic Noise
-                        n=2
-                        while(hits[k][i][200-j-n]==1): n=n+1
-                        dt_mean = 0
-                        for m in range(n-1):
-                            dt_mean += abs(tdc[k][i][200-j-m]-tdc[k][i][200-j-m-1])
-                        dt_mean = dt_mean/(n-1)
-                        if(dt_mean<10):
-                            for m in range(n):
-                                hits[k][i][200-j-m]=0
-                                drift[k][i][200-j-m]=0
-                                tdc[k][i][200-j-m]=0                               
+        for i in range(54):
+            if(i<30 or i>45):
+                for j in range(100):#Work from both sides
+                    if(hits[k][i][j]==1 and hits[k][i][j+1]==1):
+                        if(hits[k][i][j+2]==0):#Two hits
+                            if(drift[k][i][j]>0.4 and drift[k][i][j+1]>0.9):#Edge hit check
+                                hits[k][i][j+1]=0
+                                drift[k][i][j+1]=0
+                                tdc[k][i][j+1]=0
+                            elif(drift[k][i][j+1]>0.4 and drift[k][i][j]>0.9):#Edge hit check
+                                hits[k][i][j]=0
+                                drift[k][i][j]=0
+                                tdc[k][i][j]=0
+                            if(abs(tdc[k][i][j]-tdc[k][i][j+1])<8):#Electronic Noise Check
+                                hits[k][i][j+1]=0
+                                drift[k][i][j+1]=0
+                                tdc[k][i][j+1]=0
+                                hits[k][i][j]=0
+                                drift[k][i][j]=0
+                                tdc[k][i][j]=0
+
+                        else:#Check larger clusters for Electronic Noise
+                            n=2
+                            while(hits[k][i][j+n]==1):n=n+1
+                            dt_mean = 0
+                            for m in range(n-1):
+                                dt_mean += (tdc[k][i][j+m]-tdc[k][i][j+m+1])
+                            dt_mean = dt_mean/(n-1)
+                            if(dt_mean<10):
+                                for m in range(n):
+                                    hits[k][i][j+m]=0
+                                    drift[k][i][j+m]=0
+                                    tdc[k][i][j+m]=0
+                    if(hits[k][i][200-j]==1 and hits[k][i][199-j]):
+                        if(hits[k][i][198-j]==0):
+                            if(drift[k][i][200-j]>0.4 and drift[k][i][199-j]>0.9):  # Edge hit check
+                                hits[k][i][199-j]=0
+                                drift[k][i][199-j]=0
+                            elif(drift[k][i][199-j]>0.4 and drift[k][i][200-j]>0.9):  # Edge hit check
+                                hits[k][i][200-j]=0
+                                drift[k][i][200-j]=0
+                            if(abs(tdc[k][i][200-j]-tdc[k][i][199-j])<8):  # Electronic Noise Check
+                                hits[k][i][199-j]=0
+                                drift[k][i][199-j]=0
+                                tdc[k][i][199-j]=0
+                                hits[k][i][200-j]=0
+                                drift[k][i][200-j]=0
+                                tdc[k][i][200-j]=0
+                        else:  # Check larger clusters for Electronic Noise
+                            n=2
+                            while(hits[k][i][200-j-n]==1): n=n+1
+                            dt_mean = 0
+                            for m in range(n-1):
+                                dt_mean += abs(tdc[k][i][200-j-m]-tdc[k][i][200-j-m-1])
+                            dt_mean = dt_mean/(n-1)
+                            if(dt_mean<10):
+                                for m in range(n):
+                                    hits[k][i][200-j-m]=0
+                                    drift[k][i][200-j-m]=0
+                                    tdc[k][i][200-j-m]=0                                      
+
+def calc_mismatches(track):
+    results = []
+    for pos_slice, neg_slice in [(slice(0, 6), slice(34, 40)), (slice(6, 12), slice(40, 46)), (slice(12, 18), slice(46, 52))]:
+        # Compare even indices with odd indices for the 0th component of the final dimension
+        even_pos_indices = track[:, pos_slice, 0].reshape(track.shape[0], -1, 2)[:, :, 0]
+        odd_pos_indices = track[:, pos_slice, 0].reshape(track.shape[0], -1, 2)[:, :, 1]
+        even_neg_indices = track[:, neg_slice, 0].reshape(track.shape[0], -1, 2)[:, :, 0]
+        odd_neg_indices = track[:, neg_slice, 0].reshape(track.shape[0], -1, 2)[:, :, 1]
+
+        results.extend([
+            np.sum(abs(even_pos_indices - odd_pos_indices) > 1, axis=1),
+            np.sum(abs(even_neg_indices - odd_neg_indices) > 1, axis=1),
+            np.sum(track[:, pos_slice, 2] == 0, axis=1),
+            np.sum(track[:, neg_slice, 2] == 0, axis=1)
+        ])
+    
+    return np.array(results)
+
 
 if(file_extension=='.root'):
 	# Read in data from the ROOT file.
@@ -314,162 +337,143 @@ print("Loaded events")
 # Load and apply a pre-trained TensorFlow model for event filtering.
 model = tf.keras.models.load_model('Networks/event_filter')
 probability_model = tf.keras.Sequential([model, tf.keras.layers.Softmax()])
-predictions = probability_model.predict(hits, batch_size=256, verbose=0)
+event_classification_probabilies  = probability_model.predict(hits, batch_size=256, verbose=0)
 
 # Filter out events based on the prediction from the event filter model.
 #Keep events that have better than 75% probability of having a dimuon tracks.
-filt = predictions[:, 3] > dimuon_prob_threshold
+filt = event_classification_probabilies [:, 1] > dimuon_prob_threshold
 hits = hits[filt]
 drift = drift[filt]
+
+tf.keras.backend.clear_session()
+model = tf.keras.models.load_model('../Networks/Track_Finder_Pos')
+pos_predictions = model.predict(hits, verbose=0)
+tf.keras.backend.clear_session()
+model = tf.keras.models.load_model('../Networks/Track_Finder_Neg')
+neg_predictions =model.predict(hits, verbose=0)
+predictions = (np.round(np.column_stack((pos_predictions,neg_predictions))*max_ele)).astype(int)
+
+muon_track=evaluate_finder(hits,drift,predictions)
+
+tf.keras.backend.clear_session()
+model = tf.keras.models.load_model('../Networks/Reconstruction_Pos')
+pos_pred = model.predict(muon_track[:,:34,:2], verbose=0)
+tf.keras.backend.clear_session()
+model = tf.keras.models.load_model('../Networks/Reconstruction_Neg')
+neg_pred = model.predict(muon_track[:,34:,:2], verbose=0)
+
+muon_track_quality = calc_mismatches(muon_track)
+filt1 = ((muon_track_quality[0::4] < 2) & (muon_track_quality[1::4] < 2) & (muon_track_quality[2::4] < 3) & (muon_track_quality[3::4] < 3)).all(axis=0)
+
+hits = hits[filt1]
+drift = drift[filt1]
+
 if(file_extension=='.root'):
 	# Read and filter metadata based on the same criteria used for hits and drift data.
 	# This metadata includes various identifiers and measurements related to the events.
-	runid = targettree["fRunID"].arrays(library="np")["fRunID"][filt]
-	eventid = targettree["fEventID"].arrays(library="np")["fEventID"][filt]
-	spill_id = targettree["fSpillID"].arrays(library="np")["fSpillID"][filt]
-	trigger_bit = targettree["fTriggerBits"].arrays(library="np")["fTriggerBits"][filt]
-	target_position = targettree["fTargetPos"].arrays(library="np")["fTargetPos"][filt]
-	turnid = targettree["fTurnID"].arrays(library="np")["fTurnID"][filt]
-	rfid = targettree["fRFID"].arrays(library="np")["fRFID"][filt]
-	intensity = targettree["fIntensity[33]"].arrays(library="np")["fIntensity[33]"][filt]
-	n_roads = targettree["fNRoads[4]"].arrays(library="np")["fNRoads[4]"][filt]
-	n_hits = targettree["fNHits[55]"].arrays(library="np")["fNHits[55]"][filt]
+	runid = targettree["fRunID"].arrays(library="np")["fRunID"][filt][filt1]
+        eventid = targettree["fEventID"].arrays(library="np")["fEventID"][filt][filt1]
+        spill_id = targettree["fSpillID"].arrays(library="np")["fSpillID"][filt][filt1]
+        trigger_bit = targettree["fTriggerBits"].arrays(library="np")["fTriggerBits"][filt][filt1]
+        target_position = targettree["fTargetPos"].arrays(library="np")["fTargetPos"][filt][filt1]
+        turnid = targettree["fTurnID"].arrays(library="np")["fTurnID"][filt][filt1]
+        rfid = targettree["fRFID"].arrays(library="np")["fRFID"][filt][filt1]
+        intensity = targettree["fIntensity[33]"].arrays(library="np")["fIntensity[33]"][filt][filt1]
+        n_roads = targettree["fNRoads[4]"].arrays(library="np")["fNRoads[4]"][filt][filt1]
+        n_hits = targettree["fNHits[55]"].arrays(library="np")["fNHits[55]"][filt][filt1]
 
 if(file_extension=='.npz'):
-	truth = truth[filt]
+	truth = truth[filt][filt1]
 
-predictions = predictions[filt]  # Apply the filter to the predictions as well.
+event_classification_probabilies  = event_classification_probabilies [filt][filt1]  # Apply the filter to the predictions as well.
+ pos_pred = pos_pred[filt1]
+neg_pred = neg_pred[filt1]
+muon_track_quality = muon_track_quality.T[filt1]
 
 print("Filtered Events")
 print("Found",len(hits),"dimuons.")
 
 # If there are filtered events to process, continue with the track finding and reconstruction.
-if(len(hits) > 0):
-    # The predictions from the event filter are stored for later use.
-    event_classification_probabilies = predictions
-
-    # Clear any existing TensorFlow models from memory to load new ones.
+if(len(hits>0)):
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
-    
-    # Load the Track Finder model trained to identify tracks across all vertex positions.
-    model = tf.keras.models.load_model('Networks/Track_Finder_All')
-    predictions = (np.round(model.predict(hits, verbose=0) * max_ele)).astype(int)
-    
-    # Evaluate the Track Finder model and adjust the hit matrices accordingly.
-    all_vtx_track = evaluate_finder(hits, drift, predictions)
-    print("Found Tracks")
-       
-    # Similar steps are repeated for models trained on different subsets of the data,
-    # such as those specific to z-vertices or target vertices, to improve the precision
-    # of track identification under different conditions.
-
-    # After finding tracks, the next step is to reconstruct the 4-momentum
-    # for the particles involved in each event. This involves loading a new model
-    # specifically trained for this purpose and processing the track data through it.
-
-    # Clear TensorFlow sessions again to ensure a clean slate for loading new models.
-    tf.keras.backend.clear_session()
-    tf.compat.v1.reset_default_graph()
-    
-    # Load the momentum reconstruction model and predict the 4-momentum for each track.
-    model = tf.keras.models.load_model('Networks/Reconstruction_All')
-    pred = model.predict(all_vtx_track, batch_size=8192, verbose=0)
-    reco_kinematics = pred  # Store the predicted 4-momentum for each event.
-
-    # Vertex reconstruction is similar to the previous steps, using a dedicated model
-    # to determine the points in space where the particle interactions occurred.
-
-    # Combine the reconstructed kinematic data with the original hit data for vertexing.
-    vertex_reco = np.concatenate((pred.reshape((len(pred), 3, 2)), all_vtx_track), axis=1)
-
-    # Clear TensorFlow sessions and load the vertex reconstruction model.
-    tf.keras.backend.clear_session()
-    tf.compat.v1.reset_default_graph()
-    model = tf.keras.models.load_model('Networks/Vertexing_All')
-    
-    # Predict vertex positions for each event.
-    pred = model.predict(vertex_reco, batch_size=8192, verbose=0)
-    reco_vertex = pred  # Store the reconstructed vertex positions.
-
-    # Combine all reconstructed data for a comprehensive analysis.
-    all_vtx_reco_kinematics = np.concatenate((reco_kinematics, reco_vertex), axis=1)
-
-    print("Reconstructed events for all vertices")
- 
-    tf.keras.backend.clear_session()
-    tf.compat.v1.reset_default_graph()
-    model = tf.keras.models.load_model('Networks/Track_Finder_Z')
+    model = tf.keras.models.load_model('../Networks/Track_Finder_All')
     predictions = (np.round(model.predict(hits,verbose=0)*max_ele)).astype(int)
-    z_vtx_track = evaluate_finder(hits,drift,predictions)
-
-    # Similar processes are repeated for the tracks identified by
-    # such as those specific to z vertices or target vertices.
-    # Three versions of the track finder were trained on different vertex distributions:
-    # All vertices along the beamline within 1 meter of the beam.
-    # All z-vertices along the beamline and finally Target vertices.
-    # This multi-model approach allows for a nuanced analysis of particle tracks
-    # from various perspectives, improving the overall quality of the reconstruction.
+    all_vtx_track = evaluate_finder(hits,drift,predictions)[:,:,:2]
 
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
-    model=tf.keras.models.load_model('Networks/Reconstruction_Z')
-    pred = model.predict(z_vtx_track,batch_size=8192,verbose=0)
-    reco_kinematics = pred
+    model=tf.keras.models.load_model('../Networks/Reconstruction_All')
+    reco_kinematics = model.predict(all_vtx_track,batch_size=8192,verbose=0)
 
-    vertex_reco=np.concatenate((pred.reshape((len(pred),3,2)),z_vtx_track),axis=1)
+    vertex_input=np.concatenate((reco_kinematics.reshape((len(reco_kinematics),3,2)),all_vtx_track),axis=1)
 
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
-    model=tf.keras.models.load_model('Networks/Vertexing_Z')
-    pred = model.predict(vertex_reco,batch_size=8192,verbose=0)
-    reco_vertex = pred
+    model=tf.keras.models.load_model('../Networks/Vertexing_All')
+    reco_vertex = model.predict(vertex_input,batch_size=8192,verbose=0)
 
-    z_vtx_reco_kinematics=np.concatenate((reco_kinematics,reco_vertex),axis=1)
+    all_vtx_reco=np.concatenate((reco_kinematics,reco_vertex),axis=1)
 
-    print("Reconstructed events for z vertices")
- 
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
-    model = tf.keras.models.load_model('Networks/Track_Finder_Target')
+    model = tf.keras.models.load_model('../Networks/Track_Finder_Z')
+    predictions = (np.round(model.predict(hits,verbose=0)*max_ele)).astype(int)
+    z_vtx_track = evaluate_finder(hits,drift,predictions)[:,:,:2]
+
+    tf.keras.backend.clear_session()
+    tf.compat.v1.reset_default_graph()
+    model=tf.keras.models.load_model('../Networks/Reconstruction_Z')
+    reco_kinematics = model.predict(z_vtx_track,batch_size=8192,verbose=0)
+
+    vertex_input=np.concatenate((reco_kinematics.reshape((len(reco_kinematics),3,2)),z_vtx_track),axis=1)
+
+    tf.keras.backend.clear_session()
+    tf.compat.v1.reset_default_graph()
+    model=tf.keras.models.load_model('../Networks/Vertexing_Z')
+    reco_vertex = model.predict(vertex_input,batch_size=8192,verbose=0)
+
+    z_vtx_reco=np.concatenate((reco_kinematics,reco_vertex),axis=1)
+
+    tf.keras.backend.clear_session()
+    tf.compat.v1.reset_default_graph()
+    model = tf.keras.models.load_model('../Networks/Track_Finder_Target')
     predictions = (np.round(model.predict(hits,verbose=0)*max_ele)).astype(int)
     target_track = evaluate_finder(hits,drift,predictions)
 
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
-    model=tf.keras.models.load_model('Networks/Reconstruction_Target')
-    pred = model.predict(target_track,batch_size=8192,verbose=0)
-    reco_kinematics = pred
+    model=tf.keras.models.load_model('../Networks/Reconstruction_Target')
+    target_vtx_reco = model.predict(target_track[:,:,:2],batch_size=8192,verbose=0)
 
-    target_vtx_reco_kinematics= reco_kinematics
+    tf.keras.backend.clear_session()
+    tf.compat.v1.reset_default_graph()
+    model = tf.keras.models.load_model('../Networks/Track_Finder_Dump')
+    predictions = (np.round(model.predict(hits,verbose=0)*max_ele)).astype(int)
+    dump_track = evaluate_finder(hits,drift,predictions)[:,:,:2]
 
-    reco_kinematics = np.concatenate((all_vtx_reco_kinematics,z_vtx_reco_kinematics,target_vtx_reco_kinematics),axis=1)
-    
-    tracks = np.column_stack((all_vtx_track, z_vtx_track, target_track))
-    
-    target_dump_input = np.column_stack((reco_kinematics,tracks.reshape((len(tracks),(204*2)))))
-    
+    tf.keras.backend.clear_session()
+    tf.compat.v1.reset_default_graph()
+    model=tf.keras.models.load_model('../Networks/Reconstruction_Dump')
+    dump_vtx_reco = model.predict(dump_track,batch_size=8192,verbose=0)
+
+    dimuon_track_quality = calc_mismatches(target_track).T
+
+    reco_kinematics = np.concatenate((event_classification_probabilies[:,1], pos_pred, neg_pred, all_vtx_reco, z_vtx_reco, target_vtx_reco, dump_vtx_reco, muon_track_quality, dimuon_track_quality),axis=1)
+
+    tracks = np.column_stack((muon_track[:,:,:2], all_vtx_track, z_vtx_track, target_track[:,:,:2], dump_track))
+
+    target_dump_input = np.column_stack((reco_kinematics,tracks.reshape((len(tracks),(68*2*5)))))
+
     tf.keras.backend.clear_session()
     tf.compat.v1.reset_default_graph()
     model=tf.keras.models.load_model('../Networks/target_dump_filter')
-    target_dump_pred = model.predict(target_dump_input,batch_size=512)
+    target_dump_pred = model.predict(target_dump_input,batch_size=512,verbose=0)
     target_dump_prob = np.exp(target_dump_pred) / np.sum(np.exp(target_dump_pred), axis=1, keepdims=True)
-    all_predictions = np.column_stack((all_vtx_reco_kinematics*stds+means,z_vtx_reco_kinematics*stds+means, target_vtx_reco_kinematics*kin_stds+kin_means))            
-    print("Reconstructed events for target vertices")
 
-    #Calculate the number of drift chamber mismatches for output
-    st1_track = np.column_stack((target_track[:,:6,0],target_track[:,34:40,0]))
-    st2_track = np.column_stack((target_track[:,6:12,0],target_track[:,40:46,0]))
-    st3_track = np.column_stack((target_track[:,12:18,0],target_track[:,46:52,0]))
-    dc_unmatched_st_1 = np.sum(abs(st1_track[:,::2]-st1_track[:,1::2])>1,axis=1)
-    dc_unmatched_st_2 = np.sum(abs(st2_track[:,::2]-st2_track[:,1::2])>1,axis=1)
-    dc_unmatched_st_3 = np.sum(abs(st3_track[:,::2]-st3_track[:,1::2])>1,axis=1)
-
-    tracks = tracks[:,0] #Select only the element IDs for output
-
-    print("Reconstructed events for target vertices")
-   
-    # The QTracker output data is saved to a NumPy file for further analysis,
+    all_predictions = np.column_stack((pos_pred, neg_pred, all_vtx_reco*stds+means, z_vtx_reco*stds+means, target_vtx_reco*kin_stds+kin_means, dump_vtx_reco*kin_stds+kin_means))            
+    
+    print("Found ",len(all_predictions)," Dimuons in file.")
     
     save_output()
     print("QTracker Complete")
