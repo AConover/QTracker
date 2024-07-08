@@ -21,5 +21,6 @@ job11_id=$(sbatch --dependency=afterok:$job6_id Training_Jobscripts/jobscript_Ki
 job12_id=$(sbatch --dependency=afterok:$job7_id Training_Jobscripts/jobscript_Kin_Dump.sh | awk '{print $4}')
 
 # Submit the target-dump filter training once everything else is done.
-sbatch --dependency=afterok:$job8_id:$job9_id:$job10_id:$job11_id:$job12_id Training_Jobscripts/jobscript_Target_Dump_Filter.sh
-
+job13_id=$(sbatch --dependency=afterok:$job8_id:$job9_id:$job10_id:$job11_id:$job12_id Training_Jobscripts/jobscript_Target_Reco_Generation.sh | awk '{print $4}')
+job14_id=$(sbatch --dependency=afterok:$job8_id:$job9_id:$job10_id:$job11_id:$job12_id Training_Jobscripts/jobscript_Dump_Reco_Generation.sh | awk '{print $4}')
+sbatch --dependency=afterok:$job13_id:$job14_id Training_Jobscripts/jobscript_Target_Dump_Filter.sh
