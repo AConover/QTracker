@@ -326,69 +326,64 @@ def calc_mismatches(track):
     
     return np.array(results)
 
-# List all root files in the directory
-root_files = [file for file in os.listdir(root_directory) if file.endswith('.root')]
+def load_model(path):
+    tf.keras.backend.clear_session()
+    tf.compat.v1.reset_default_graph()
+    return tf.keras.models.load_model(path)
 
-for root_file in root_files[i:]:
+def process_root_file(root_file, root_directory, i, max_ele, dimuon_prob_threshold, means, stds, kin_means, kin_stds):
     try:
-        # Open the current root file
         i += 1
         print(i)
         print(root_file)
         targettree = uproot.open(os.path.join(root_directory, root_file) + ":save")
 
-        #Event Data
+        # Event Data
         detectorid = targettree["fAllHits.detectorID"].arrays(library="np")["fAllHits.detectorID"]
         elementid = targettree["fAllHits.elementID"].arrays(library="np")["fAllHits.elementID"]
         driftdistance = targettree["fAllHits.driftDistance"].arrays(library="np")["fAllHits.driftDistance"]
         tdctime = targettree["fAllHits.tdcTime"].arrays(library="np")["fAllHits.tdcTime"]
         intime = targettree["fAllHits.flag"].arrays(library="np")["fAllHits.flag"]
 
-        hits = np.zeros((len(detectorid), 54, 201),dtype=bool)
+        hits = np.zeros((len(detectorid), 54, 201), dtype=bool)
         drift = np.zeros((len(detectorid), 54, 201))
-        tdc = np.zeros((len(detectorid), 54, 201),dtype=int)
+        tdc = np.zeros((len(detectorid), 54, 201), dtype=int)
 
         for n in range(len(detectorid)):
-            hits[n], drift[n], tdc[n] = hit_matrix(detectorid[n], elementid[n], driftdistance[n],tdctime[n],intime[n], hits[n], drift[n], tdc[n])
-        
+            hits[n], drift[n], tdc[n] = hit_matrix(detectorid[n], elementid[n], driftdistance[n], tdctime[n], intime[n], hits[n], drift[n], tdc[n])
+
         declusterize(hits, drift, tdc)
         
-        tf.keras.backend.clear_session()
-        tf.compat.v1.reset_default_graph()
-        print("Loaded events")
-        model = tf.keras.models.load_model('../Networks/event_filter')
+        # Load and apply the event filter model
+        model = load_model('../Networks/event_filter')
         probability_model = tf.keras.Sequential([model, tf.keras.layers.Softmax()])
-        event_classification_probabilies = probability_model.predict(hits,batch_size=256, verbose=0)
+        event_classification_probabilities = probability_model.predict(hits, batch_size=256, verbose=0)
         
-        filt = event_classification_probabilies[:,3]>=dimuon_prob_threshold
-        
-        hits=hits[filt]
-        drift=drift[filt]
-        
-        tf.keras.backend.clear_session()
-        model = tf.keras.models.load_model('../Networks/Track_Finder_Pos')
-        pos_predictions = model.predict(hits, verbose=0)
-        tf.keras.backend.clear_session()
-        model = tf.keras.models.load_model('../Networks/Track_Finder_Neg')
-        neg_predictions =model.predict(hits, verbose=0)
-        predictions = (np.round(np.column_stack((pos_predictions,neg_predictions))*max_ele)).astype(int)
+        filt = event_classification_probabilities[:, 3] >= dimuon_prob_threshold
+        hits, drift, tdc = hits[filt], drift[filt], tdc[filt]
 
-        muon_track=evaluate_finder(hits,drift,predictions)
+        # Load and apply the track finder models
+        pos_model = load_model('../Networks/Track_Finder_Pos')
+        pos_predictions = pos_model.predict(hits, verbose=0)
+        neg_model = load_model('../Networks/Track_Finder_Neg')
+        neg_predictions = neg_model.predict(hits, verbose=0)
+        predictions = (np.round(np.column_stack((pos_predictions, neg_predictions)) * max_ele)).astype(int)
 
-        tf.keras.backend.clear_session()
-        model = tf.keras.models.load_model('../Networks/Reconstruction_Pos')
-        pos_pred = model.predict(muon_track[:,:34,:2], verbose=0)
-        tf.keras.backend.clear_session()
-        model = tf.keras.models.load_model('../Networks/Reconstruction_Neg')
-        neg_pred = model.predict(muon_track[:,34:,:2], verbose=0)
-        
-        muon_track_quality = calc_mismatches(muon_track)
+        muon_track = evaluate_finder(hits, drift, predictions)
+
+        # Load and apply the reconstruction models
+        pos_recon_model = load_model('../Networks/Reconstruction_Pos')
+        pos_pred = pos_recon_model.predict(muon_track[:, :34, :2], verbose=0)
+        neg_recon_model = load_model('../Networks/Reconstruction_Neg')
+        neg_pred = neg_recon_model.predict(muon_track[:, 34:, :2], verbose=0)
+
+        # Filter based on track quality
+        muon_track_quality = calc_mismatches(muon_track).T
         filt1 = ((muon_track_quality[0::4] < 2) & (muon_track_quality[1::4] < 2) & (muon_track_quality[2::4] < 3) & (muon_track_quality[3::4] < 3)).all(axis=0)
 
-        hits = hits[filt1]
-        drift = drift[filt1]
+        hits, drift, tdc = hits[filt1], drift[filt1], tdc[filt1]
 
-        #Meta Data
+        # Meta Data
         runid = targettree["fRunID"].arrays(library="np")["fRunID"][filt][filt1]
         eventid = targettree["fEventID"].arrays(library="np")["fEventID"][filt][filt1]
         spill_id = targettree["fSpillID"].arrays(library="np")["fSpillID"][filt][filt1]
@@ -399,100 +394,82 @@ for root_file in root_files[i:]:
         intensity = targettree["fIntensity[33]"].arrays(library="np")["fIntensity[33]"][filt][filt1]
         n_roads = targettree["fNRoads[4]"].arrays(library="np")["fNRoads[4]"][filt][filt1]
         n_hits = targettree["fNHits[55]"].arrays(library="np")["fNHits[55]"][filt][filt1]
-        
-        event_classification_probabilies = event_classification_probabilies[filt][filt1]
-        pos_pred = pos_pred[filt1]
-        neg_pred = neg_pred[filt1]
-        muon_track_quality = muon_track_quality.T[filt1]
-        
+
+        event_classification_probabilities = event_classification_probabilities[filt][filt1]
+        pos_pred, neg_pred = pos_pred[filt1], neg_pred[filt1]
+        muon_track_quality = muon_track_quality[filt1]
+
         print("Filtered Events")
-        if(len(hits>0)):
-            tf.keras.backend.clear_session()
-            tf.compat.v1.reset_default_graph()
-            model = tf.keras.models.load_model('../Networks/Track_Finder_All')
-            predictions = (np.round(model.predict(hits,verbose=0)*max_ele)).astype(int)
-            all_vtx_track = evaluate_finder(hits,drift,predictions)[:,:,:2]
+        if len(hits) > 0:
+            # Load and apply models for further processing
+            track_finder_all_model = load_model('../Networks/Track_Finder_All')
+            predictions = (np.round(track_finder_all_model.predict(hits, verbose=0) * max_ele)).astype(int)
+            all_vtx_track = evaluate_finder(hits, drift, predictions)[:, :, :2]
 
-            tf.keras.backend.clear_session()
-            tf.compat.v1.reset_default_graph()
-            model=tf.keras.models.load_model('../Networks/Reconstruction_All')
-            reco_kinematics = model.predict(all_vtx_track,batch_size=8192,verbose=0)
+            reco_all_model = load_model('../Networks/Reconstruction_All')
+            reco_kinematics = reco_all_model.predict(all_vtx_track, batch_size=8192, verbose=0)
 
-            vertex_input=np.concatenate((reco_kinematics.reshape((len(reco_kinematics),3,2)),all_vtx_track),axis=1)
+            vertex_input = np.concatenate((reco_kinematics.reshape((len(reco_kinematics), 3, 2)), all_vtx_track), axis=1)
 
-            tf.keras.backend.clear_session()
-            tf.compat.v1.reset_default_graph()
-            model=tf.keras.models.load_model('../Networks/Vertexing_All')
-            reco_vertex = model.predict(vertex_input,batch_size=8192,verbose=0)
+            vertexing_all_model = load_model('../Networks/Vertexing_All')
+            reco_vertex = vertexing_all_model.predict(vertex_input, batch_size=8192, verbose=0)
 
-            all_vtx_reco=np.concatenate((reco_kinematics,reco_vertex),axis=1)
+            all_vtx_reco = np.concatenate((reco_kinematics, reco_vertex), axis=1)
 
-            tf.keras.backend.clear_session()
-            tf.compat.v1.reset_default_graph()
-            model = tf.keras.models.load_model('../Networks/Track_Finder_Z')
-            predictions = (np.round(model.predict(hits,verbose=0)*max_ele)).astype(int)
-            z_vtx_track = evaluate_finder(hits,drift,predictions)[:,:,:2]
+            track_finder_z_model = load_model('../Networks/Track_Finder_Z')
+            predictions = (np.round(track_finder_z_model.predict(hits, verbose=0) * max_ele)).astype(int)
+            z_vtx_track = evaluate_finder(hits, drift, predictions)[:, :, :2]
 
-            tf.keras.backend.clear_session()
-            tf.compat.v1.reset_default_graph()
-            model=tf.keras.models.load_model('../Networks/Reconstruction_Z')
-            reco_kinematics = model.predict(z_vtx_track,batch_size=8192,verbose=0)
+            reco_z_model = load_model('../Networks/Reconstruction_Z')
+            reco_kinematics = reco_z_model.predict(z_vtx_track, batch_size=8192, verbose=0)
 
-            vertex_input=np.concatenate((reco_kinematics.reshape((len(reco_kinematics),3,2)),z_vtx_track),axis=1)
+            vertex_input = np.concatenate((reco_kinematics.reshape((len(reco_kinematics), 3, 2)), z_vtx_track), axis=1)
 
-            tf.keras.backend.clear_session()
-            tf.compat.v1.reset_default_graph()
-            model=tf.keras.models.load_model('../Networks/Vertexing_Z')
-            reco_vertex = model.predict(vertex_input,batch_size=8192,verbose=0)
+            vertexing_z_model = load_model('../Networks/Vertexing_Z')
+            reco_vertex = vertexing_z_model.predict(vertex_input, batch_size=8192, verbose=0)
 
-            z_vtx_reco=np.concatenate((reco_kinematics,reco_vertex),axis=1)
+            z_vtx_reco = np.concatenate((reco_kinematics, reco_vertex), axis=1)
 
-            tf.keras.backend.clear_session()
-            tf.compat.v1.reset_default_graph()
-            model = tf.keras.models.load_model('../Networks/Track_Finder_Target')
-            predictions = (np.round(model.predict(hits,verbose=0)*max_ele)).astype(int)
-            target_track = evaluate_finder(hits,drift,predictions)
+            track_finder_target_model = load_model('../Networks/Track_Finder_Target')
+            predictions = (np.round(track_finder_target_model.predict(hits, verbose=0) * max_ele)).astype(int)
+            target_track = evaluate_finder(hits, drift, predictions)
 
-            tf.keras.backend.clear_session()
-            tf.compat.v1.reset_default_graph()
-            model=tf.keras.models.load_model('../Networks/Reconstruction_Target')
-            target_vtx_reco = model.predict(target_track[:,:,:2],batch_size=8192,verbose=0)
+            reco_target_model = load_model('../Networks/Reconstruction_Target')
+            target_vtx_reco = reco_target_model.predict(target_track[:, :, :2], batch_size=8192, verbose=0)
 
-            tf.keras.backend.clear_session()
-            tf.compat.v1.reset_default_graph()
-            model = tf.keras.models.load_model('../Networks/Track_Finder_Dump')
-            predictions = (np.round(model.predict(hits,verbose=0)*max_ele)).astype(int)
-            dump_track = evaluate_finder(hits,drift,predictions)[:,:,:2]
+            track_finder_dump_model = load_model('../Networks/Track_Finder_Dump')
+            predictions = (np.round(track_finder_dump_model.predict(hits, verbose=0) * max_ele)).astype(int)
+            dump_track = evaluate_finder(hits, drift, predictions)[:, :, :2]
 
-            tf.keras.backend.clear_session()
-            tf.compat.v1.reset_default_graph()
-            model=tf.keras.models.load_model('../Networks/Reconstruction_Dump')
-            dump_vtx_reco = model.predict(dump_track,batch_size=8192,verbose=0)
+            reco_dump_model = load_model('../Networks/Reconstruction_Dump')
+            dump_vtx_reco = reco_dump_model.predict(dump_track, batch_size=8192, verbose=0)
 
             dimuon_track_quality = calc_mismatches(target_track).T
 
-            reco_kinematics = np.concatenate((event_classification_probabilies[:,1], pos_pred, neg_pred, all_vtx_reco, z_vtx_reco, target_vtx_reco, dump_vtx_reco, muon_track_quality, dimuon_track_quality),axis=1)
+            reco_kinematics = np.concatenate((event_classification_probabilities[:, 1], pos_pred, neg_pred, all_vtx_reco, z_vtx_reco, target_vtx_reco, dump_vtx_reco, muon_track_quality, dimuon_track_quality), axis=1)
 
-            tracks = np.column_stack((muon_track[:,:,:2], all_vtx_track, z_vtx_track, target_track[:,:,:2], dump_track))
+            tracks = np.column_stack((muon_track[:, :, :2], all_vtx_track, z_vtx_track, target_track[:, :, :2], dump_track))
 
-            target_dump_input = np.column_stack((reco_kinematics,tracks.reshape((len(tracks),(68*2*5)))))
+            target_dump_input = np.column_stack((reco_kinematics, tracks.reshape((len(tracks), (68 * 2 * 5)))))
 
-            tf.keras.backend.clear_session()
-            tf.compat.v1.reset_default_graph()
-            model=tf.keras.models.load_model('../Networks/target_dump_filter')
-            target_dump_pred = model.predict(target_dump_input,batch_size=512,verbose=0)
+            target_dump_filter_model = load_model('../Networks/target_dump_filter')
+            target_dump_pred = target_dump_filter_model.predict(target_dump_input, batch_size=512, verbose=0)
             target_dump_prob = np.exp(target_dump_pred) / np.sum(np.exp(target_dump_pred), axis=1, keepdims=True)
 
-            all_predictions = np.column_stack((pos_pred, neg_pred, all_vtx_reco*stds+means, z_vtx_reco*stds+means, target_vtx_reco*kin_stds+kin_means, dump_vtx_reco*kin_stds+kin_means))            
-            
-            print("Found ",len(all_predictions)," Dimuons in file.")
+            all_predictions = np.column_stack((pos_pred, neg_pred, all_vtx_reco * stds + means, z_vtx_reco * stds + means, target_vtx_reco * kin_stds + kin_means, dump_vtx_reco * kin_stds + kin_means))
+
+            print("Found", len(all_predictions), "Dimuons in file.")
             
             save_output()
-        else: print("No events meeting dimuon criteria.")
+        else:
+            print("No events meeting dimuon criteria.")
     except Exception as e:
-        # Handle the exception (print an error message, log it, etc.)
-        print("Error processing file {root_file}: ",e)
-        continue
+        print(f"Error processing file {root_file}: {e}")
+
+root_files = [file for file in os.listdir(root_directory) if file.endswith('.root')]
+    
+for i, root_file in enumerate(root_files):
+    process_root_file(root_file, root_directory, i, max_ele, dimuon_prob_threshold, means, stds, kin_means, kin_stds)
 
     
 
